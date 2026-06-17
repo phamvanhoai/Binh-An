@@ -26,7 +26,7 @@ Bình An không phải app bói toán, không phải mạng xã hội toxic, kh�
 
 ### Frontend + Backend
 
-- Framework: **Next.js 14+ hoặc Next.js 15**
+- Framework: **Next.js 16**
 - Router: **App Router**
 - Language: **TypeScript**
 - Styling: **Tailwind CSS**
