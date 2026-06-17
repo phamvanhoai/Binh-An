@@ -1303,4 +1303,51 @@ Yêu cầu:
    - Tạo góc tưởng nhớ.
 9. Viết README hướng dẫn setup local và deploy.
 10. Ưu tiên hoàn thiện bản chạy được hơn là làm animation phức tạp.
+---
+
+# Binh An MVP setup
+
+Day la ban Next.js App Router + TypeScript + Tailwind + Supabase cho san pham Binh An, duoc scaffold tu tai lieu yeu cau trong README nay.
+
+## Setup local
+
+1. Cai dependencies:
+
+```bash
+npm install
+```
+
+2. Tao file moi truong:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Dien cac bien Supabase:
+
+```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+4. Chay SQL trong `supabase/schema.sql` tren Supabase SQL Editor.
+
+5. Chay dev server:
+
+```bash
+npm run dev
+```
+
+6. Kiem tra truoc deploy:
+
+```bash
+npm run typecheck
+npm run build
+```
+
+## Deploy Vercel
+
+Ket noi repo len Vercel, them cac bien moi truong nhu `.env.example`, va deploy. Khong dua `SUPABASE_SERVICE_ROLE_KEY` vao client-side code.
 

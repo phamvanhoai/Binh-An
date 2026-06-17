@@ -1,0 +1,161 @@
+create extension if not exists pgcrypto;
+
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  display_name text,
+  avatar_url text,
+  bio text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists daily_messages (
+  id uuid primary key default gen_random_uuid(),
+  message text not null,
+  reflection_question text,
+  category text not null,
+  active_date date unique,
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table if not exists user_daily_messages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  message_id uuid references daily_messages(id) on delete cascade,
+  opened_date date not null,
+  created_at timestamptz default now(),
+  unique(user_id, opened_date)
+);
+
+create table if not exists prayers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  content text not null,
+  type text not null check (type in ('wish', 'gratitude', 'memorial', 'worry', 'peace')),
+  visibility text not null default 'public_anonymous' check (visibility in ('private', 'public_anonymous')),
+  allow_reactions boolean default true,
+  status text default 'active' check (status in ('active', 'hidden', 'deleted')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists prayer_reactions (
+  id uuid primary key default gen_random_uuid(),
+  prayer_id uuid references prayers(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  reaction_type text not null check (reaction_type in ('pray', 'peace', 'candle')),
+  created_at timestamptz default now(),
+  unique(prayer_id, user_id, reaction_type)
+);
+
+create table if not exists future_letters (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  title text not null,
+  content text not null,
+  open_at timestamptz not null,
+  opened_at timestamptz,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists memorials (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  name text not null,
+  relationship text,
+  birth_date date,
+  death_date date,
+  avatar_url text,
+  message text,
+  visibility text default 'private' check (visibility in ('private', 'public_link')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists memorial_candles (
+  id uuid primary key default gen_random_uuid(),
+  memorial_id uuid references memorials(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete set null,
+  message text,
+  created_at timestamptz default now()
+);
+
+create table if not exists gratitude_entries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  content text not null,
+  entry_date date not null default current_date,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_id uuid references auth.users(id) on delete set null,
+  target_type text not null,
+  target_id uuid not null,
+  reason text not null,
+  status text default 'pending',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table profiles enable row level security;
+alter table daily_messages enable row level security;
+alter table user_daily_messages enable row level security;
+alter table prayers enable row level security;
+alter table prayer_reactions enable row level security;
+alter table future_letters enable row level security;
+alter table memorials enable row level security;
+alter table memorial_candles enable row level security;
+alter table gratitude_entries enable row level security;
+alter table reports enable row level security;
+
+create policy "profiles are public" on profiles for select using (true);
+create policy "users update own profile" on profiles for update using (auth.uid() = id);
+create policy "users insert own profile" on profiles for insert with check (auth.uid() = id);
+
+create policy "active daily messages are readable" on daily_messages for select using (is_active = true);
+
+create policy "users read own daily opens" on user_daily_messages for select using (auth.uid() = user_id);
+create policy "users insert own daily opens" on user_daily_messages for insert with check (auth.uid() = user_id);
+
+create policy "public reads active prayers" on prayers
+  for select using (visibility = 'public_anonymous' and status = 'active');
+create policy "users read own prayers" on prayers for select using (auth.uid() = user_id);
+create policy "users insert own prayers" on prayers for insert with check (auth.uid() = user_id);
+create policy "users update own prayers" on prayers for update using (auth.uid() = user_id);
+
+create policy "reactions are readable" on prayer_reactions for select using (true);
+create policy "users insert own reactions" on prayer_reactions for insert with check (auth.uid() = user_id);
+create policy "users delete own reactions" on prayer_reactions for delete using (auth.uid() = user_id);
+
+create policy "users manage own letters" on future_letters for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "users read own memorials" on memorials for select using (auth.uid() = user_id);
+create policy "public reads linked memorials" on memorials for select using (visibility = 'public_link');
+create policy "users insert own memorials" on memorials for insert with check (auth.uid() = user_id);
+create policy "users update own memorials" on memorials for update using (auth.uid() = user_id);
+create policy "users delete own memorials" on memorials for delete using (auth.uid() = user_id);
+
+create policy "candles are readable for visible memorials" on memorial_candles for select using (
+  exists (
+    select 1 from memorials
+    where memorials.id = memorial_candles.memorial_id
+      and (memorials.visibility = 'public_link' or memorials.user_id = auth.uid())
+  )
+);
+create policy "users can light candles" on memorial_candles for insert with check (auth.uid() = user_id or user_id is null);
+
+create policy "users manage own gratitude" on gratitude_entries for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "users create reports" on reports for insert with check (auth.uid() = reporter_id);
+
+insert into daily_messages (message, reflection_question, category, active_date)
+values
+  ('Co nhung dieu khong can voi vang. Hom nay, hay cho ban than duoc tho cham lai mot chut.', 'Hom nay ban muon buong bo dieu gi?', 'peace', current_date),
+  ('Ban da co gang nhieu hon ban nghi. Hay diu dang voi chinh minh hom nay.', 'Dieu nao trong ban dang can duoc cong nhan?', 'hope', null),
+  ('Khong phai ngay nao cung phai that manh me. Co ngay chi can binh an la du.', 'Ban can nghi ngoi o dau?', 'peace', null),
+  ('Mot ngay moi khong can hoan hao, chi can co mot dieu tot dep.', 'Dieu tot dep nho nao dang o gan ban?', 'gratitude', null)
+on conflict do nothing;
