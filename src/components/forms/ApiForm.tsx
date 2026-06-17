@@ -36,7 +36,7 @@ export function ApiForm({ endpoint, fields, submitLabel }: ApiFormProps) {
     });
     const json = (await response.json()) as { success: boolean; error?: string };
     setLoading(false);
-    setMessage(json.success ? "Da luu thanh cong." : json.error || "Co loi xay ra.");
+    setMessage(json.success ? "Đã lưu thành công." : json.error || "Có lỗi xảy ra.");
   }
 
   return (
@@ -80,7 +80,7 @@ export function ApiForm({ endpoint, fields, submitLabel }: ApiFormProps) {
         className="inline-flex items-center justify-center gap-2 rounded bg-night px-4 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Send size={17} aria-hidden="true" />
-        {loading ? "Dang luu..." : submitLabel}
+        {loading ? "Đang lưu..." : submitLabel}
       </button>
       {message ? <p className="text-sm font-medium text-slate-600">{message}</p> : null}
     </form>

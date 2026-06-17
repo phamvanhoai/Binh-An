@@ -154,8 +154,8 @@ create policy "users create reports" on reports for insert with check (auth.uid(
 
 insert into daily_messages (message, reflection_question, category, active_date)
 values
-  ('Co nhung dieu khong can voi vang. Hom nay, hay cho ban than duoc tho cham lai mot chut.', 'Hom nay ban muon buong bo dieu gi?', 'peace', current_date),
-  ('Ban da co gang nhieu hon ban nghi. Hay diu dang voi chinh minh hom nay.', 'Dieu nao trong ban dang can duoc cong nhan?', 'hope', null),
-  ('Khong phai ngay nao cung phai that manh me. Co ngay chi can binh an la du.', 'Ban can nghi ngoi o dau?', 'peace', null),
-  ('Mot ngay moi khong can hoan hao, chi can co mot dieu tot dep.', 'Dieu tot dep nho nao dang o gan ban?', 'gratitude', null)
+  ('Có những điều không cần vội vàng. Hôm nay, hãy cho bản thân được thở chậm lại một chút.', 'Hôm nay bạn muốn buông bỏ điều gì?', 'peace', current_date),
+  ('Bạn đã cố gắng nhiều hơn bạn nghĩ. Hãy dịu dàng với chính mình hôm nay.', 'Điều nào trong bạn đang cần được công nhận?', 'hope', null),
+  ('Không phải ngày nào cũng phải thật mạnh mẽ. Có ngày chỉ cần bình an là đủ.', 'Bạn cần nghỉ ngơi ở đâu?', 'peace', null),
+  ('Một ngày mới không cần hoàn hảo, chỉ cần có một điều tốt đẹp.', 'Điều tốt đẹp nhỏ nào đang ở gần bạn?', 'gratitude', null)
 on conflict do nothing;

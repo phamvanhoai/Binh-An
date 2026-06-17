@@ -4,12 +4,12 @@ import { PrayerCard } from "@/components/cards/PrayerCard";
 import { demoPrayers } from "@/lib/demo-data";
 
 const features = [
-  { icon: MoonStar, title: "Thong diep hom nay", text: "Moi ngay mot thong diep nho de cham lai." },
-  { icon: Flame, title: "Thap nen binh an", text: "Gui loi nguyen rieng tu hoac cong khai an danh." },
-  { icon: HeartHandshake, title: "Dong nguyen", text: "Nhan su nang do nhe nhang tu cong dong van minh." },
-  { icon: Mail, title: "Thu tuong lai", text: "Viet cho chinh minh va mo vao mot ngay da hen." },
-  { icon: BookHeart, title: "Goc tuong nho", text: "Luu giu ky uc ve nguoi than trong khong gian rieng." },
-  { icon: CalendarHeart, title: "Hanh trinh biet on", text: "Ghi lai nhung dieu tot dep theo ngay thang." }
+  { icon: MoonStar, title: "Thông điệp hôm nay", text: "Mỗi ngày một thông điệp nhỏ để chậm lại." },
+  { icon: Flame, title: "Thắp nến bình an", text: "Gửi lời nguyện riêng tư hoặc công khai ẩn danh." },
+  { icon: HeartHandshake, title: "Đồng nguyện", text: "Nhận sự nâng đỡ nhẹ nhàng từ cộng đồng văn minh." },
+  { icon: Mail, title: "Thư tương lai", text: "Viết cho chính mình và mở vào một ngày đã hẹn." },
+  { icon: BookHeart, title: "Góc tưởng nhớ", text: "Lưu giữ ký ức về người thân trong không gian riêng." },
+  { icon: CalendarHeart, title: "Hành trình biết ơn", text: "Ghi lại những điều tốt đẹp theo ngày tháng." }
 ];
 
 export default function Home() {
@@ -20,18 +20,18 @@ export default function Home() {
         <div className="relative mx-auto grid min-h-[74vh] max-w-7xl content-center gap-10 px-4 py-20 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
             <p className="mb-5 inline-flex rounded bg-white/10 px-3 py-1 text-sm font-semibold text-mint">
-              Moi ngay mot phut binh an
+              Mỗi ngày một phút bình an
             </p>
-            <h1 className="text-5xl font-bold tracking-normal sm:text-7xl">Binh An</h1>
+            <h1 className="text-5xl font-bold tracking-normal sm:text-7xl">Bình An</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">
-              Noi gui loi nguyen, luu giu ky uc va nhan mot thong diep tich cuc moi ngay.
+              Nơi gửi lời nguyện, lưu giữ ký ức và nhận một thông điệp tích cực mỗi ngày.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/register" className="rounded bg-candle px-5 py-3 font-semibold text-night transition hover:bg-amber-300">
-                Bat dau ngay
+                Bắt đầu ngay
               </Link>
               <Link href="/today" className="rounded border border-white/25 px-5 py-3 font-semibold text-white transition hover:bg-white/10">
-                Mo thong diep
+                Mở thông điệp
               </Link>
             </div>
           </div>
@@ -47,8 +47,8 @@ export default function Home() {
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mb-8 max-w-2xl">
-          <h2 className="text-3xl font-bold text-night">Khong gian nhe nhang cho nhung dieu tot dep</h2>
-          <p className="mt-3 text-slate-600">MVP gom day du cac luong cot loi de web va app mobile dung chung backend.</p>
+          <h2 className="text-3xl font-bold text-night">Không gian nhẹ nhàng cho những điều tốt đẹp</h2>
+          <p className="mt-3 text-slate-600">MVP gồm đầy đủ các luồng cốt lõi để web và app mobile dùng chung backend.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => (
@@ -65,11 +65,11 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-3xl font-bold text-night">Loi nguyen moi nhat</h2>
-              <p className="mt-2 text-slate-600">Cong khai an danh, khong binh luan tu do.</p>
+              <h2 className="text-3xl font-bold text-night">Lời nguyện mới nhất</h2>
+              <p className="mt-2 text-slate-600">Công khai ẩn danh, không bình luận tự do.</p>
             </div>
             <Link href="/prayers/new" className="rounded bg-night px-4 py-3 text-center font-semibold text-white">
-              Tao loi nguyen
+              Tạo lời nguyện
             </Link>
           </div>
           <div className="grid gap-4 md:grid-cols-3">

@@ -6,8 +6,8 @@ export default function SkyPage() {
     <section className="min-h-[75vh] bg-night text-white">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Bau troi Binh An</h1>
-          <p className="mt-2 text-slate-300">Nhung diem sang nho tu cac loi nguyen cong khai.</p>
+          <h1 className="text-3xl font-bold">Bầu trời Bình An</h1>
+          <p className="mt-2 text-slate-300">Những điểm sáng nhỏ từ các lời nguyện công khai.</p>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {demoPrayers.map((prayer) => (

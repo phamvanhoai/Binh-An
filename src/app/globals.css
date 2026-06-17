@@ -40,3 +40,652 @@ a {
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(18px);
 }
+
+.ritual-object {
+  position: relative;
+  width: min(58vw, 18rem);
+  transition: filter 0.6s ease, opacity 0.6s ease, transform 0.8s ease;
+}
+
+.ritual-photo {
+  position: relative;
+  width: min(58vw, 18rem);
+  transition: filter 0.6s ease, opacity 0.6s ease, transform 0.8s ease;
+}
+
+.ritual-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+.candle-photo {
+  width: min(48vw, 14rem);
+  filter: drop-shadow(0 1.4rem 2rem rgba(2, 6, 23, 0.42));
+}
+
+.candle-photo-lit {
+  filter: drop-shadow(0 0 3rem rgba(251, 191, 36, 0.5)) drop-shadow(0 1.5rem 2rem rgba(2, 6, 23, 0.34));
+}
+
+.photo-candle-glow {
+  position: absolute;
+  left: 50.2%;
+  top: 17.4%;
+  width: 12rem;
+  height: 12rem;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(254, 243, 199, 0.75), rgba(251, 191, 36, 0.18) 45%, transparent 72%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.photo-candle-flame {
+  position: absolute;
+  left: 50.15%;
+  top: 16.9%;
+  width: 1.55rem;
+  height: 2.55rem;
+  transform: translate(-50%, -50%) scale(0.3);
+  transform-origin: center bottom;
+  border-radius: 60% 40% 60% 40%;
+  background: radial-gradient(circle at 50% 72%, #fff7ed 0 16%, #fbbf24 17% 48%, #ea580c 49% 76%, transparent 77%);
+  filter: drop-shadow(0 0 1.2rem rgba(251, 191, 36, 0.9));
+  opacity: 0;
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.candle-photo-lit .photo-candle-glow,
+.candle-photo-lit .photo-candle-flame {
+  opacity: 1;
+}
+
+.candle-photo-lit .photo-candle-flame {
+  transform: translate(-50%, -50%) scale(1);
+  animation: vector-flame-flicker 1.7s ease-in-out infinite;
+}
+
+.incense-photo {
+  width: min(48vw, 14rem);
+  filter: drop-shadow(0 1.3rem 2rem rgba(2, 6, 23, 0.36));
+}
+
+.photo-incense-ember {
+  position: absolute;
+  left: 50%;
+  top: 4.2%;
+  width: 0.85rem;
+  height: 0.85rem;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: #475569;
+  opacity: 0.2;
+  transition: opacity 0.45s ease, background 0.45s ease, box-shadow 0.45s ease;
+}
+
+.incense-active .photo-incense-ember {
+  opacity: 1;
+  background: #fbbf24;
+  box-shadow: 0 0 1.4rem rgba(251, 191, 36, 0.85);
+}
+
+.photo-smoke {
+  position: absolute;
+  left: 50%;
+  top: -8%;
+  width: 3rem;
+  height: 9rem;
+  border-left: 2px solid rgba(248, 250, 252, 0.5);
+  border-radius: 50%;
+  opacity: 0;
+  filter: blur(0.35px);
+}
+
+.incense-active .photo-smoke {
+  animation: photo-smoke-rise 4.2s ease-in-out infinite;
+}
+
+.photo-smoke-two {
+  margin-left: 1rem;
+  animation-delay: 0.55s;
+}
+
+.photo-smoke-three {
+  margin-left: -1.1rem;
+  animation-delay: 1s;
+}
+
+.lantern-photo {
+  position: absolute;
+  width: min(52vw, 13.5rem);
+  opacity: 0.72;
+  filter: drop-shadow(0 1.2rem 1.5rem rgba(2, 6, 23, 0.36));
+  transform: translateY(1.7rem) translateX(-1.5rem) scale(var(--lantern-scale, 1));
+}
+
+.lantern-photo.lantern-released {
+  opacity: var(--lantern-opacity, 1);
+  filter: drop-shadow(0 0 2.4rem rgba(251, 191, 36, 0.42)) drop-shadow(0 1.4rem 1.5rem rgba(2, 6, 23, 0.28));
+  animation: vector-lantern-release 1.45s ease-out both, vector-lantern-drift 5.2s ease-in-out 1.45s infinite;
+}
+
+.photo-lantern-light {
+  position: absolute;
+  left: 50%;
+  top: 43%;
+  width: 42%;
+  height: 42%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 247, 237, 0.88), rgba(251, 191, 36, 0.28) 45%, transparent 72%);
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity 0.55s ease;
+}
+
+.lantern-photo.lantern-released .photo-lantern-light {
+  opacity: 1;
+}
+
+.lantern-photo-one {
+  left: 13%;
+  bottom: 26%;
+}
+
+.lantern-photo-two {
+  --lantern-scale: 0.62;
+  --lantern-opacity: 0.82;
+  left: 49%;
+  bottom: 21%;
+  animation-delay: 0.25s;
+}
+
+.lantern-photo-three {
+  --lantern-scale: 0.44;
+  --lantern-opacity: 0.7;
+  left: 70%;
+  bottom: 34%;
+  animation-delay: 0.55s;
+}
+
+.ritual-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.candle-object {
+  filter: drop-shadow(0 1.4rem 2rem rgba(2, 6, 23, 0.34));
+}
+
+.candle-object-lit {
+  filter: drop-shadow(0 0 2.8rem rgba(251, 191, 36, 0.48)) drop-shadow(0 1.6rem 2rem rgba(2, 6, 23, 0.28));
+}
+
+.candle-glow,
+.candle-flame {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transition: opacity 0.5s ease, scale 0.5s ease;
+}
+
+.candle-flame {
+  scale: 0.35;
+}
+
+.candle-flame-lit,
+.candle-object-lit .candle-glow {
+  opacity: 1;
+  scale: 1;
+}
+
+.candle-flame-lit {
+  animation: vector-flame-flicker 1.7s ease-in-out infinite;
+}
+
+.incense-object {
+  width: min(52vw, 16rem);
+  filter: drop-shadow(0 1.3rem 2rem rgba(2, 6, 23, 0.32));
+}
+
+.incense-ember {
+  transition: fill 0.5s ease, filter 0.5s ease;
+}
+
+.incense-active .incense-ember {
+  fill: #fbbf24;
+  filter: drop-shadow(0 0 0.85rem rgba(251, 191, 36, 0.86));
+}
+
+.incense-smoke-line {
+  opacity: 0;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+}
+
+.incense-active .incense-smoke-line {
+  animation: vector-smoke-rise 4s ease-in-out infinite;
+}
+
+.incense-active .smoke-two {
+  animation-delay: 0.45s;
+}
+
+.incense-active .smoke-three {
+  animation-delay: 0.9s;
+}
+
+.lantern-vector {
+  position: absolute;
+  width: min(52vw, 13.5rem);
+  opacity: 0.56;
+  filter: drop-shadow(0 1.2rem 1.5rem rgba(2, 6, 23, 0.34));
+  transform: translateY(1.7rem) translateX(-1.5rem) scale(var(--lantern-scale, 1));
+}
+
+.lantern-vector .lantern-core {
+  opacity: 0.45;
+  transition: opacity 0.5s ease, filter 0.5s ease;
+}
+
+.lantern-vector.lantern-released {
+  opacity: var(--lantern-opacity, 1);
+  filter: drop-shadow(0 0 2.4rem rgba(251, 191, 36, 0.42)) drop-shadow(0 1.4rem 1.5rem rgba(2, 6, 23, 0.28));
+  animation: vector-lantern-release 1.45s ease-out both, vector-lantern-drift 5.2s ease-in-out 1.45s infinite;
+}
+
+.lantern-vector.lantern-released .lantern-core {
+  opacity: 1;
+  filter: drop-shadow(0 0 1.15rem rgba(251, 191, 36, 0.82));
+}
+
+.lantern-vector-one {
+  left: 16%;
+  bottom: 28%;
+}
+
+.lantern-vector-two {
+  --lantern-scale: 0.66;
+  --lantern-opacity: 0.82;
+  left: 48%;
+  bottom: 22%;
+  animation-delay: 0.25s;
+}
+
+.lantern-vector-three {
+  --lantern-scale: 0.48;
+  --lantern-opacity: 0.7;
+  left: 70%;
+  bottom: 34%;
+  animation-delay: 0.55s;
+}
+
+.lantern-water {
+  position: absolute;
+  inset: auto 0 0;
+  height: 76%;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.18) 18%, rgba(3, 7, 18, 0.28) 100%),
+    url("/assets/rituals/water-bg.png") center bottom / cover no-repeat;
+  background-position: center bottom, 50% 100%;
+  background-size: cover, 112% auto;
+  mask-image: linear-gradient(180deg, transparent 0%, black 21%, black 100%);
+  transform: scale(1.02);
+  transition: filter 0.7s ease;
+}
+
+.lantern-water-active {
+  animation: water-surface-pan 10s ease-in-out infinite;
+  filter: brightness(1.08) saturate(1.08);
+}
+
+.lantern-water::before {
+  content: "";
+  position: absolute;
+  inset: 18% -8% 0;
+  background:
+    radial-gradient(ellipse at 28% 56%, rgba(251, 191, 36, 0.16), transparent 14rem),
+    radial-gradient(ellipse at 64% 46%, rgba(167, 243, 208, 0.08), transparent 12rem);
+  mix-blend-mode: screen;
+  opacity: 0.8;
+  animation: water-light-drift 7s ease-in-out infinite;
+}
+
+.lantern-water-active::before {
+  animation-duration: 4.8s;
+  opacity: 1;
+}
+
+.lantern-water::after {
+  content: "";
+  position: absolute;
+  inset: 45% 0 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 247, 237, 0.08), transparent);
+  transform: skewY(-5deg);
+  opacity: 0.55;
+  animation: water-sheen 5.5s ease-in-out infinite;
+}
+
+.lantern-water-active::after {
+  animation-duration: 3.8s;
+  opacity: 0.72;
+}
+
+.floating-lantern {
+  position: absolute;
+  bottom: 30%;
+  width: 4.5rem;
+  height: 3.2rem;
+  border-radius: 999px 999px 1rem 1rem;
+  background: radial-gradient(circle at 50% 35%, #f8fafc 0 18%, #fcd34d 19% 42%, #b45309 43% 72%, #78350f 73%);
+  box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+  opacity: 0.62;
+  transform: translateY(1.4rem) scale(var(--lantern-scale, 1));
+  transition: opacity 0.6s ease, box-shadow 0.6s ease, transform 0.8s ease;
+}
+
+.floating-lantern.lantern-released {
+  opacity: var(--lantern-opacity, 1);
+  box-shadow: 0 0 38px rgba(251, 191, 36, 0.55);
+  animation: lantern-release 1.4s ease-out both, lantern-float 4s ease-in-out 1.4s infinite;
+}
+
+.floating-lantern::before {
+  content: "";
+  position: absolute;
+  left: 19%;
+  right: 19%;
+  bottom: -0.45rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 247, 237, 0.7);
+}
+
+.lantern-one {
+  left: 18%;
+}
+
+.lantern-two {
+  left: 48%;
+  bottom: 23%;
+  --lantern-scale: 0.74;
+  --lantern-opacity: 0.82;
+  animation-delay: 0.45s;
+}
+
+.lantern-three {
+  left: 70%;
+  bottom: 34%;
+  --lantern-scale: 0.58;
+  --lantern-opacity: 0.7;
+  animation-delay: 0.9s;
+}
+
+.prayer-candle {
+  position: relative;
+  width: 5rem;
+  height: 12rem;
+  border-radius: 1rem 1rem 0.45rem 0.45rem;
+  background: linear-gradient(90deg, #f8fafc, #fff7ed 52%, #e2e8f0);
+  box-shadow: 0 1.4rem 3rem rgba(15, 23, 42, 0.22);
+  transition: box-shadow 0.7s ease;
+}
+
+.prayer-candle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -5.4rem;
+  width: 3.8rem;
+  height: 5.4rem;
+  transform: translateX(-50%);
+  border-radius: 55% 45% 55% 45%;
+  background: radial-gradient(circle at 50% 72%, #fff7ed 0 14%, #fbbf24 15% 48%, #f97316 49% 78%, transparent 79%);
+  filter: drop-shadow(0 0 1.6rem rgba(251, 191, 36, 0.75));
+  opacity: 0;
+  scale: 0.35;
+  transform-origin: 50% 78%;
+  transition: opacity 0.45s ease, scale 0.45s ease;
+}
+
+.prayer-candle-lit {
+  box-shadow: 0 2rem 5rem rgba(251, 191, 36, 0.24);
+}
+
+.prayer-candle-lit::before {
+  opacity: 1;
+  scale: 1;
+  animation: candle-flicker 1.8s ease-in-out infinite;
+}
+
+.prayer-candle span {
+  position: absolute;
+  left: 50%;
+  top: -0.35rem;
+  width: 0.25rem;
+  height: 1.4rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #1e293b;
+}
+
+.ritual-pulse {
+  animation: ritual-glow 1.6s ease-out;
+}
+
+.incense-stick {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0.28rem;
+  height: 10rem;
+  transform: translateX(-50%) rotate(10deg);
+  transform-origin: bottom;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fbbf24 0 7%, #92400e 8%);
+}
+
+.incense-stick::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -0.25rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #475569;
+  box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+  transition: background 0.45s ease, box-shadow 0.45s ease;
+}
+
+.incense-active .incense-stick::before {
+  background: #fbbf24;
+  box-shadow: 0 0 1.5rem rgba(251, 191, 36, 0.75);
+}
+
+.incense-smoke {
+  position: absolute;
+  left: 50%;
+  bottom: 9.4rem;
+  width: 0.9rem;
+  height: 8rem;
+  border-left: 2px solid rgba(248, 250, 252, 0.42);
+  border-radius: 50%;
+  filter: blur(0.2px);
+  opacity: 0;
+}
+
+.incense-active .incense-smoke {
+  animation: smoke-rise 3.8s ease-in-out infinite;
+}
+
+.incense-smoke-two {
+  margin-left: 0.9rem;
+  animation-delay: 0.55s;
+  opacity: 0.72;
+}
+
+.incense-smoke-three {
+  margin-left: -1rem;
+  animation-delay: 1.1s;
+  opacity: 0.55;
+}
+
+@keyframes lantern-release {
+  0% {
+    transform: translateY(1.4rem) translateX(-1.8rem) scale(var(--lantern-scale, 1)) rotate(-4deg);
+  }
+  100% {
+    transform: translateY(0) translateX(0) scale(var(--lantern-scale, 1)) rotate(-1deg);
+  }
+}
+
+@keyframes vector-lantern-release {
+  0% {
+    transform: translateY(1.7rem) translateX(-1.5rem) scale(var(--lantern-scale, 1)) rotate(-4deg);
+  }
+  72% {
+    transform: translateY(-0.35rem) translateX(0.4rem) scale(var(--lantern-scale, 1)) rotate(1.5deg);
+  }
+  100% {
+    transform: translateY(0) translateX(0) scale(var(--lantern-scale, 1)) rotate(-1deg);
+  }
+}
+
+@keyframes vector-lantern-drift {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0) scale(var(--lantern-scale, 1)) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-0.9rem) translateX(0.7rem) scale(var(--lantern-scale, 1)) rotate(2deg);
+  }
+}
+
+@keyframes vector-flame-flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(-1.5deg);
+  }
+  45% {
+    transform: scale(0.94, 1.08) rotate(2deg);
+  }
+  72% {
+    transform: scale(1.04, 0.96) rotate(-2.5deg);
+  }
+}
+
+@keyframes vector-smoke-rise {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 120;
+    transform: translateY(0.9rem) translateX(0);
+  }
+  28% {
+    opacity: 0.62;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+    transform: translateY(-2rem) translateX(0.8rem);
+  }
+}
+
+@keyframes photo-smoke-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(1.1rem) translateX(0) scale(0.78) rotate(-5deg);
+  }
+  24% {
+    opacity: 0.58;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4.6rem) translateX(1.6rem) scale(1.22) rotate(8deg);
+  }
+}
+
+@keyframes water-light-drift {
+  0%,
+  100% {
+    transform: translateX(-1.4rem) translateY(0);
+  }
+  50% {
+    transform: translateX(1.4rem) translateY(0.4rem);
+  }
+}
+
+@keyframes water-surface-pan {
+  0%,
+  100% {
+    background-position: center bottom, 48% 100%;
+    transform: scale(1.02) translateX(-0.4%);
+  }
+  50% {
+    background-position: center bottom, 53% 96%;
+    transform: scale(1.04) translateX(0.4%);
+  }
+}
+
+@keyframes water-sheen {
+  0%,
+  100% {
+    transform: translateX(-12%) skewY(-5deg);
+    opacity: 0.28;
+  }
+  50% {
+    transform: translateX(12%) skewY(-5deg);
+    opacity: 0.58;
+  }
+}
+
+@keyframes lantern-float {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0) scale(var(--lantern-scale, 1)) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-1rem) translateX(0.6rem) scale(var(--lantern-scale, 1)) rotate(2deg);
+  }
+}
+
+@keyframes candle-flicker {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1) rotate(-2deg);
+  }
+  50% {
+    transform: translateX(-50%) scale(0.92, 1.08) rotate(3deg);
+  }
+}
+
+@keyframes ritual-glow {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 3.5rem rgba(251, 191, 36, 0.9));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0));
+  }
+}
+
+@keyframes smoke-rise {
+  0% {
+    transform: translateY(1.3rem) translateX(0) scale(0.75);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.72;
+  }
+  100% {
+    transform: translateY(-5rem) translateX(1.4rem) scale(1.18);
+    opacity: 0;
+  }
+}

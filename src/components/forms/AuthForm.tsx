@@ -41,7 +41,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         />
       </label>
       <label className="grid gap-2 text-sm font-semibold text-slate-700">
-        Mat khau
+        Mật khẩu
         <input
           name="password"
           type="password"
@@ -55,7 +55,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         disabled={loading}
         className="rounded bg-night px-4 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
       >
-        {loading ? "Dang xu ly..." : mode === "login" ? "Dang nhap" : "Dang ky"}
+        {loading ? "Đang xử lý..." : mode === "login" ? "Đăng nhập" : "Đăng ký"}
       </button>
       {message ? <p className="text-sm text-slate-600">{message}</p> : null}
     </form>

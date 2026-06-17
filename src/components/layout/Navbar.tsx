@@ -2,11 +2,11 @@ import Link from "next/link";
 import { Flame, LayoutDashboard } from "lucide-react";
 
 const links = [
-  { href: "/today", label: "Hom nay" },
-  { href: "/prayers", label: "Loi nguyen" },
-  { href: "/sky", label: "Bau troi" },
-  { href: "/letters", label: "Thu" },
-  { href: "/gratitude", label: "Biet on" }
+  { href: "/today", label: "Hôm nay" },
+  { href: "/prayers", label: "Lời nguyện" },
+  { href: "/sky", label: "Bầu trời" },
+  { href: "/letters", label: "Thư" },
+  { href: "/gratitude", label: "Biết ơn" }
 ];
 
 export function Navbar() {
@@ -17,7 +17,7 @@ export function Navbar() {
           <span className="grid h-9 w-9 place-items-center rounded bg-night text-candle shadow-glow">
             <Flame size={19} aria-hidden="true" />
           </span>
-          <span>Binh An</span>
+          <span>Bình An</span>
         </Link>
         <nav className="hidden items-center gap-5 text-sm font-medium text-slate-600 md:flex">
           {links.map((link) => (
@@ -31,7 +31,7 @@ export function Navbar() {
             href="/login"
             className="hidden rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-night hover:text-night sm:inline-flex"
           >
-            Dang nhap
+            Đăng nhập
           </Link>
           <Link
             href="/dashboard"

@@ -1,7 +1,7 @@
 export default function PrivacyPolicyPage() {
   return (
-    <Policy title="Chinh sach bao mat">
-      Binh An chi thu thap du lieu can thiet de van hanh tai khoan, luu noi dung rieng tu va hien thi noi dung cong khai ma ban chon chia se. Secret va service role key khong bao gio duoc dua ra client.
+    <Policy title="Chính sách bảo mật">
+      Bình An chỉ thu thập dữ liệu cần thiết để vận hành tài khoản, lưu nội dung riêng tư và hiển thị nội dung công khai mà bạn chọn chia sẻ. Secret và service role key không bao giờ được đưa ra client.
     </Policy>
   );
 }

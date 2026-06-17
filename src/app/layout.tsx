@@ -13,14 +13,14 @@ const beVietnam = Be_Vietnam_Pro({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   title: {
-    default: "Binh An",
-    template: "%s | Binh An"
+    default: "Bình An",
+    template: "%s | Bình An"
   },
-  description: "Noi gui loi nguyen, luu giu ky uc va nhan mot thong diep tich cuc moi ngay.",
+  description: "Nơi gửi lời nguyện, lưu giữ ký ức và nhận một thông điệp tích cực mỗi ngày.",
   openGraph: {
-    title: "Binh An",
-    description: "Moi ngay mot phut binh an.",
-    siteName: "Binh An",
+    title: "Bình An",
+    description: "Mỗi ngày một phút bình an.",
+    siteName: "Bình An",
     type: "website"
   }
 };

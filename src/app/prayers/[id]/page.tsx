@@ -12,9 +12,9 @@ export default async function PrayerDetailPage({ params }: { params: Promise<{ i
         <h1 className="text-2xl font-semibold leading-relaxed text-night">{prayer.content}</h1>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           {[
-            { icon: HeartHandshake, label: "Dong nguyen", value: prayer.pray },
-            { icon: Sparkles, label: "An lanh", value: prayer.peace },
-            { icon: Flame, label: "Nen", value: prayer.candle }
+            { icon: HeartHandshake, label: "Đồng nguyện", value: prayer.pray },
+            { icon: Sparkles, label: "An lành", value: prayer.peace },
+            { icon: Flame, label: "Nến", value: prayer.candle }
           ].map((item) => (
             <form key={item.label} action={`/api/prayers/${id}/reactions`} method="post">
               <button className="flex w-full items-center justify-center gap-2 rounded border border-slate-300 px-4 py-3 font-semibold text-slate-700 transition hover:border-night hover:text-night">
