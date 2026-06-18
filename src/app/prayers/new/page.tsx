@@ -1,11 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import Image from "next/image";
+import { useState } from "react";
 import {
   Bell,
   BookOpen,
   CalendarHeart,
   Crown,
   Flame,
-  Flower2,
   Heart,
   Home,
   Mail,
@@ -16,6 +19,7 @@ import {
   Users
 } from "lucide-react";
 import { CandlePrayerMockupForm } from "@/components/forms/CandlePrayerMockupForm";
+import type { RitualMode } from "@/components/forms/CandlePrayerMockupForm";
 
 const navItems = [
   { href: "/", label: "Trang chủ", icon: Home },
@@ -28,33 +32,87 @@ const navItems = [
   { href: "/prayers", label: "Bạn bè & Đồng nguyện", icon: Users }
 ];
 
-const stats = [
-  { label: "Nến hôm nay", value: "12.458", icon: Flame },
-  { label: "Lời nguyện", value: "3.245", icon: BookOpen },
-  { label: "Người tham gia", value: "8.932", icon: Users }
+const topPrayers = [
+  { text: "Mong ba vượt qua ca phẫu thuật, mọi chuyện bình an.", mode: "candle" as const },
+  { text: "Cầu mong cho các sĩ tử thi tốt, đạt được ước mơ.", mode: "incense" as const },
+  { text: "Mong dịch bệnh qua đi, mọi người được khỏe mạnh.", mode: "lantern" as const }
 ];
 
-const topPrayers = [
-  "Mong ba vượt qua ca phẫu thuật, mọi chuyện bình an.",
-  "Cầu mong cho các sĩ tử thi tốt, đạt được ước mơ.",
-  "Mong dịch bệnh qua đi, mọi người được khỏe mạnh."
-];
+const ritualVisuals = {
+  candle: {
+    image: "/assets/rituals/candle.png",
+    miniClass: "h-9 w-9",
+    statClass: "h-8 w-8",
+    communityTitle: "Cộng đồng đang thắp nến",
+    statLabel: "Nến hôm nay"
+  },
+  incense: {
+    image: "/assets/rituals/incense.png",
+    miniClass: "h-11 w-9",
+    statClass: "h-9 w-8",
+    communityTitle: "Cộng đồng đang thắp hương",
+    statLabel: "Nén hương hôm nay"
+  },
+  lantern: {
+    image: "/assets/rituals/lantern.png",
+    miniClass: "h-9 w-11",
+    statClass: "h-8 w-10",
+    communityTitle: "Cộng đồng đang thả hoa đăng",
+    statLabel: "Hoa đăng hôm nay"
+  }
+} satisfies Record<RitualMode, {
+  image: string;
+  miniClass: string;
+  statClass: string;
+  communityTitle: string;
+  statLabel: string;
+}>;
 
 const recentPrayers = [
-  "Mong mẹ luôn khỏe mạnh và vui vẻ mỗi ngày.",
-  "Cầu mong gia đình bình an, hạnh phúc.",
-  "Hy vọng mọi điều tốt đẹp sẽ đến với mình.",
-  "Cảm ơn vì hôm nay mọi thứ đều ổn.",
-  "Cầu mong thế giới luôn hòa bình."
+  { text: "Mong mẹ luôn khỏe mạnh và vui vẻ mỗi ngày.", mode: "candle" as const },
+  { text: "Cầu mong gia đình bình an, hạnh phúc.", mode: "incense" as const },
+  { text: "Hy vọng mọi điều tốt đẹp sẽ đến với mình.", mode: "lantern" as const },
+  { text: "Cảm ơn vì hôm nay mọi thứ đều ổn.", mode: "candle" as const },
+  { text: "Cầu mong thế giới luôn hòa bình.", mode: "lantern" as const }
 ];
 
+function RitualMiniImage({
+  src = "/assets/rituals/candle.png",
+  className = "h-8 w-8"
+}: {
+  src?: string;
+  className?: string;
+}) {
+  return (
+    <span className="relative inline-grid shrink-0 place-items-center">
+      <span className="absolute inset-0 rounded-full bg-amber-300/20 blur-lg" />
+      <Image
+        src={src}
+        width={120}
+        height={120}
+        alt=""
+        aria-hidden="true"
+        className={`${className} relative z-10 object-contain drop-shadow-[0_0_12px_rgba(251,191,36,0.45)]`}
+      />
+    </span>
+  );
+}
+
 export default function NewPrayerPage() {
+  const [selectedMode, setSelectedMode] = useState<RitualMode>("candle");
+  const ritualVisual = ritualVisuals[selectedMode];
+  const stats = [
+    { label: ritualVisual.statLabel, value: "12.458", image: ritualVisual.image },
+    { label: "Lời nguyện", value: "3.245", icon: BookOpen },
+    { label: "Người tham gia", value: "8.932", icon: Users }
+  ];
+
   return (
     <div className="ritual-dashboard min-h-screen bg-[#080d19] text-slate-100">
       <aside className="ritual-sidebar fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-white/10 bg-[#0b1222]/95 px-4 py-6 xl:block">
         <Link href="/" className="flex items-center gap-3 px-2">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/10 text-amber-200">
-            <Flower2 size={30} aria-hidden="true" />
+            <RitualMiniImage src="/assets/rituals/lantern.png" className="h-11 w-11" />
           </span>
           <span>
             <span className="block text-2xl font-semibold tracking-normal text-white">Bình An</span>
@@ -77,11 +135,21 @@ export default function NewPrayerPage() {
           ))}
         </nav>
 
-        <div className="mt-10 overflow-hidden rounded-xl border border-amber-200/20 bg-[radial-gradient(circle_at_70%_20%,rgba(251,191,36,0.22),transparent_9rem),linear-gradient(135deg,rgba(30,41,59,0.86),rgba(15,23,42,0.94))] p-5">
-          <Flame className="mb-4 text-amber-300" aria-hidden="true" />
-          <h2 className="text-lg font-semibold">Gửi bình an</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-300">Đến những người bạn yêu thương bằng một lời nguyện nhỏ.</p>
-          <button className="mt-5 w-full rounded-lg bg-white/12 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/18">
+        <div className="relative mt-10 min-h-64 overflow-hidden rounded-xl border border-amber-200/20 p-5">
+          <Image
+            src="/assets/rituals/send-peace-card.png"
+            width={1024}
+            height={1536}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,18,34,0.54),rgba(11,18,34,0.08)_52%,rgba(11,18,34,0.52))]" />
+          <div className="relative z-10">
+            <h2 className="text-lg font-semibold">Gửi bình an</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-200">Đến những người bạn yêu thương bằng một lời nguyện nhỏ.</p>
+          </div>
+          <button className="absolute bottom-5 left-5 right-5 z-10 rounded-lg bg-white/14 px-4 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20">
             Tìm hiểu thêm
           </button>
         </div>
@@ -124,7 +192,7 @@ export default function NewPrayerPage() {
 
         <div className="mx-auto mt-6 grid max-w-[1600px] gap-6 2xl:grid-cols-[minmax(0,1fr)_25rem]">
           <section className="grid gap-6">
-            <CandlePrayerMockupForm />
+            <CandlePrayerMockupForm mode={selectedMode} onModeChange={setSelectedMode} />
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.055] p-5 shadow-2xl shadow-black/20">
               <div className="mb-4 flex items-center justify-between">
@@ -134,10 +202,13 @@ export default function NewPrayerPage() {
                 </Link>
               </div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                {recentPrayers.map((prayer, index) => (
-                  <article key={prayer} className="rounded-xl border border-white/10 bg-[#121a2a] p-4">
-                    <Flame className="mb-3 text-amber-300" size={18} aria-hidden="true" />
-                    <p className="min-h-16 text-sm leading-6 text-slate-200">{prayer}</p>
+                {recentPrayers.map((prayer, index) => {
+                  const prayerVisual = ritualVisuals[prayer.mode];
+
+                  return (
+                    <article key={prayer.text} className="rounded-xl border border-white/10 bg-[#121a2a] p-4">
+                    <RitualMiniImage src={prayerVisual.image} className={`mb-3 ${prayerVisual.statClass}`} />
+                    <p className="min-h-16 text-sm leading-6 text-slate-200">{prayer.text}</p>
                     <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
                       <span>{index + 2} phút trước</span>
                       <span className="inline-flex items-center gap-1 text-rose-400">
@@ -146,18 +217,23 @@ export default function NewPrayerPage() {
                       </span>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </section>
           </section>
 
           <aside className="grid content-start gap-5">
             <section className="rounded-2xl border border-white/10 bg-white/[0.055] p-5">
-              <h2 className="font-semibold text-white">Cộng đồng đang thắp nến</h2>
+              <h2 className="font-semibold text-white">{ritualVisual.communityTitle}</h2>
               <div className="mt-5 grid grid-cols-3 gap-3">
                 {stats.map((stat) => (
                   <div key={stat.label} className="rounded-xl border border-white/10 bg-[#121a2a] p-4 text-center">
-                    <stat.icon className="mx-auto mb-2 text-amber-300" size={20} aria-hidden="true" />
+                    {"image" in stat ? (
+                      <RitualMiniImage src={stat.image} className={`mx-auto mb-2 ${ritualVisual.statClass}`} />
+                    ) : (
+                      <stat.icon className="mx-auto mb-2 text-amber-300" size={20} aria-hidden="true" />
+                    )}
                     <p className="text-lg font-semibold text-white">{stat.value}</p>
                     <p className="mt-1 text-xs text-slate-400">{stat.label}</p>
                   </div>
@@ -168,16 +244,20 @@ export default function NewPrayerPage() {
             <section className="rounded-2xl border border-white/10 bg-white/[0.055] p-5">
               <h2 className="font-semibold text-white">Lời nguyện được đồng nguyện nhiều nhất</h2>
               <div className="mt-5 grid gap-3">
-                {topPrayers.map((prayer, index) => (
-                  <article key={prayer} className="flex gap-4 rounded-xl border border-white/10 bg-[#121a2a] p-4">
-                    <Flame className="mt-1 shrink-0 text-amber-300" size={23} aria-hidden="true" />
+                {topPrayers.map((prayer, index) => {
+                  const prayerVisual = ritualVisuals[prayer.mode];
+
+                  return (
+                  <article key={prayer.text} className="flex gap-4 rounded-xl border border-white/10 bg-[#121a2a] p-4">
+                    <RitualMiniImage src={prayerVisual.image} className={`mt-1 ${prayerVisual.miniClass}`} />
                     <div>
-                      <p className="text-sm leading-6 text-slate-100">{prayer}</p>
+                      <p className="text-sm leading-6 text-slate-100">{prayer.text}</p>
                       <p className="mt-2 text-xs text-slate-500">{2351 - index * 364} người đồng nguyện</p>
                     </div>
                     <Heart className="ml-auto shrink-0 text-rose-400" size={18} aria-hidden="true" />
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </section>
 

@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Flame, Flower2, Lightbulb, Lock, Send, UserRound, Wind } from "lucide-react";
+import { Flame, Lightbulb, Lock, Send, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type RitualMode = "candle" | "incense" | "lantern";
+export type RitualMode = "candle" | "incense" | "lantern";
 
 type PrayerResponse = {
   success: boolean;
@@ -13,9 +13,9 @@ type PrayerResponse = {
 };
 
 const ritualTabs = [
-  { id: "candle" as const, label: "Thắp nến", text: "Gửi lời nguyện với ánh nến", icon: Flame },
-  { id: "incense" as const, label: "Thắp hương", text: "Thành tâm tưởng nhớ", icon: Wind },
-  { id: "lantern" as const, label: "Thả hoa đăng", text: "Ước nguyện bình an", icon: Flower2 }
+  { id: "candle" as const, label: "Thắp nến", text: "Gửi lời nguyện với ánh nến", image: "/assets/rituals/candle.png", imageClass: "w-9" },
+  { id: "incense" as const, label: "Thắp hương", text: "Thành tâm tưởng nhớ", image: "/assets/rituals/incense.png", imageClass: "w-10" },
+  { id: "lantern" as const, label: "Thả hoa đăng", text: "Ước nguyện bình an", image: "/assets/rituals/lantern.png", imageClass: "w-12" }
 ];
 
 const ritualCopy = {
@@ -68,8 +68,13 @@ const options = {
 
 const chips = ["Mong ước", "Biết ơn", "Cầu nguyện", "Cho bản thân", "Cho gia đình", "Cho mọi người"];
 
-export function CandlePrayerMockupForm() {
-  const [mode, setMode] = useState<RitualMode>("candle");
+export function CandlePrayerMockupForm({
+  mode,
+  onModeChange
+}: {
+  mode: RitualMode;
+  onModeChange: (mode: RitualMode) => void;
+}) {
   const [selected, setSelected] = useState(0);
   const [visibility, setVisibility] = useState<"public_anonymous" | "private">("public_anonymous");
   const [content, setContent] = useState("");
@@ -87,7 +92,7 @@ export function CandlePrayerMockupForm() {
   );
 
   function changeMode(nextMode: RitualMode) {
-    setMode(nextMode);
+    onModeChange(nextMode);
     setSelected(0);
     setIsActive(false);
     setMessage(null);
@@ -135,7 +140,22 @@ export function CandlePrayerMockupForm() {
               mode === tab.id ? "bg-white/8 shadow-[inset_0_-1px_0_rgba(251,191,36,0.7)]" : "hover:bg-white/5"
             )}
           >
-            <tab.icon className={mode === tab.id ? "text-amber-300" : "text-pink-300"} size={31} aria-hidden="true" />
+            <span className="relative grid h-12 w-12 shrink-0 place-items-center">
+              <span
+                className={cn(
+                  "absolute inset-1 rounded-full blur-xl transition",
+                  mode === tab.id ? "bg-amber-300/35" : "bg-rose-300/15"
+                )}
+              />
+              <Image
+                src={tab.image}
+                width={120}
+                height={120}
+                alt=""
+                aria-hidden="true"
+                className={cn("relative z-10 max-h-11 object-contain drop-shadow-[0_0_14px_rgba(251,191,36,0.45)]", tab.imageClass)}
+              />
+            </span>
             <span>
               <span className="block text-lg font-semibold text-white">{tab.label}</span>
               <span className="mt-1 block text-sm text-slate-400">{tab.text}</span>
@@ -157,22 +177,55 @@ export function CandlePrayerMockupForm() {
                   setIsActive(false);
                 }}
                 className={cn(
-                  "group min-h-48 rounded-2xl border bg-[#101827] p-4 text-center transition",
+                  "ritual-option-card group min-h-48 overflow-hidden rounded-2xl border bg-[#101827] p-4 text-center transition",
                   selected === index
-                    ? "border-amber-400 shadow-[0_0_42px_rgba(251,191,36,0.22)]"
+                    ? "ritual-option-card-active border-amber-400 shadow-[0_0_42px_rgba(251,191,36,0.22)]"
                     : "border-white/10 hover:border-amber-300/50"
                 )}
               >
-                <div className="relative mx-auto h-24 w-24">
-                  <span className={cn("absolute inset-0 rounded-full bg-gradient-to-br blur-2xl opacity-35", item.color)} />
-                  <span className={cn("absolute inset-x-3 bottom-2 h-16 rounded-[50%] bg-gradient-to-br", item.color)} />
-                  <span className="absolute left-1/2 top-4 h-11 w-4 -translate-x-1/2 rounded-full bg-amber-100 shadow-[0_0_24px_rgba(251,191,36,0.8)]" />
+                <div className={cn("ritual-option-art relative mx-auto w-24", mode === "incense" ? "h-32" : "h-24")}>
+                  <span className={cn("absolute inset-1 rounded-full bg-gradient-to-br blur-2xl opacity-45", item.color)} />
+                  <span className="absolute inset-x-1 bottom-1 h-6 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.28),rgba(56,189,248,0.08)_45%,transparent_72%)] blur-sm" />
                   {mode === "incense" ? (
-                    <Wind className="absolute left-1/2 top-0 -translate-x-1/2 text-amber-200" size={28} aria-hidden="true" />
-                  ) : mode === "lantern" ? (
-                    <Flower2 className="absolute left-1/2 top-0 -translate-x-1/2 text-amber-200" size={28} fill="currentColor" aria-hidden="true" />
+                    <>
+                      <Image
+                        src="/assets/rituals/incense.png"
+                        width={1000}
+                        height={1000}
+                        alt=""
+                        aria-hidden="true"
+                        className="absolute left-1/2 top-[58%] z-10 w-[6.2rem] -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_18px_24px_rgba(0,0,0,0.5)] transition duration-500 group-hover:scale-105"
+                        style={{ filter: `${item.filter} sepia(0.26) brightness(0.78) contrast(1.14)` }}
+                      />
+                      <span
+                        className="absolute left-1/2 top-[23%] z-20 h-3 w-3 -translate-x-1/2 rounded-full blur-[2px]"
+                        style={{ backgroundColor: `${item.glow}0.95)`, boxShadow: `0 0 18px ${item.glow}0.8)` }}
+                      />
+                      <span className="ritual-option-smoke ritual-option-smoke-one" />
+                      <span className="ritual-option-smoke ritual-option-smoke-two" />
+                    </>
                   ) : (
-                    <Flame className="absolute left-1/2 top-0 -translate-x-1/2 text-amber-200" size={28} fill="currentColor" aria-hidden="true" />
+                    <>
+                      <Image
+                        src="/assets/rituals/lantern.png"
+                        width={1200}
+                        height={800}
+                        alt=""
+                        aria-hidden="true"
+                        className="absolute left-1/2 top-[56%] z-10 w-[6.35rem] -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_16px_24px_rgba(0,0,0,0.46)] transition duration-500 group-hover:scale-105"
+                        style={{ filter: item.filter }}
+                      />
+                      <span
+                        className="absolute left-1/2 top-[42%] z-20 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full blur-xl"
+                        style={{ backgroundColor: `${item.glow}0.46)` }}
+                      />
+                      <span
+                        className={cn(
+                          "absolute left-1/2 top-[37%] z-30 h-7 w-4 -translate-x-1/2 -translate-y-1/2 rounded-[60%_40%_60%_40%] bg-gradient-to-b shadow-[0_0_18px_rgba(251,191,36,0.8)]",
+                          item.flame
+                        )}
+                      />
+                    </>
                   )}
                 </div>
                 <p className="mt-3 text-sm font-semibold text-white">{item.name}</p>
