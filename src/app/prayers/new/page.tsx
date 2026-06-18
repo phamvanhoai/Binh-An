@@ -137,12 +137,12 @@ export default function NewPrayerPage() {
 
         <div className="relative mt-10 min-h-64 overflow-hidden rounded-xl border border-amber-200/20 p-5">
           <Image
-            src="/assets/rituals/send-peace-card.png"
+            src="/assets/rituals/send-peace-hand-card.png"
             width={1024}
             height={1536}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover object-bottom"
           />
           <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,18,34,0.54),rgba(11,18,34,0.08)_52%,rgba(11,18,34,0.52))]" />
           <div className="relative z-10">
