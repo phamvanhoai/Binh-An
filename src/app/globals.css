@@ -41,6 +41,78 @@ a {
   backdrop-filter: blur(18px);
 }
 
+body:has(.ritual-dashboard) > header,
+body:has(.ritual-dashboard) > footer {
+  display: none;
+}
+
+body:has(.ritual-dashboard) {
+  background: #080d19;
+}
+
+.ritual-dashboard .soft-panel {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+}
+
+.ritual-dashboard form.soft-panel {
+  border-radius: 1rem;
+}
+
+.ritual-dashboard form.soft-panel label,
+.ritual-dashboard form.soft-panel legend {
+  color: #f8fafc;
+}
+
+.ritual-dashboard form.soft-panel textarea,
+.ritual-dashboard form.soft-panel select,
+.ritual-dashboard form.soft-panel input {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.74);
+  color: #f8fafc;
+}
+
+.ritual-dashboard form.soft-panel textarea::placeholder,
+.ritual-dashboard form.soft-panel input::placeholder {
+  color: #64748b;
+}
+
+.ritual-dashboard form.soft-panel textarea:focus,
+.ritual-dashboard form.soft-panel select:focus,
+.ritual-dashboard form.soft-panel input:focus {
+  border-color: rgba(251, 191, 36, 0.72);
+}
+
+.ritual-dashboard form.soft-panel button[type="button"] {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(17, 24, 39, 0.95);
+  color: #cbd5e1;
+  border-radius: 0.85rem;
+}
+
+.ritual-dashboard form.soft-panel button[type="button"]:hover {
+  border-color: rgba(251, 191, 36, 0.55);
+  color: #fff7ed;
+}
+
+.ritual-dashboard form.soft-panel button[type="button"].bg-night {
+  border-color: rgba(251, 191, 36, 0.9);
+  background: rgba(251, 191, 36, 0.14);
+  color: #fff7ed;
+  box-shadow: 0 0 34px rgba(251, 191, 36, 0.16);
+}
+
+.ritual-dashboard form.soft-panel button[type="submit"] {
+  border-radius: 0.9rem;
+  background: linear-gradient(90deg, #9a6a22, #d99a31);
+  box-shadow: 0 18px 45px rgba(251, 191, 36, 0.18);
+}
+
+.ritual-dashboard form.soft-panel + .soft-panel {
+  border-radius: 1rem;
+}
+
 .ritual-object {
   position: relative;
   width: min(58vw, 18rem);
