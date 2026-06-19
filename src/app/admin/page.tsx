@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Activity, FileWarning, Heart, MessageSquareText, Users } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 
@@ -30,11 +31,11 @@ async function getDashboardData() {
 export default async function AdminPage() {
   const { stats, recent } = await getDashboardData();
   const cards = [
-    { label: "Người dùng", value: stats.users, icon: Users },
-    { label: "Lời bình an", value: stats.prayers, icon: Heart },
-    { label: "Lượt đồng nguyện", value: stats.reactions, icon: Activity },
-    { label: "Thông điệp", value: stats.messages, icon: MessageSquareText },
-    { label: "Báo cáo chờ xử lý", value: stats.pending_reports, icon: FileWarning }
+    { label: "Người dùng", value: stats.users, icon: Users, href: "/admin/users" },
+    { label: "Lời bình an", value: stats.prayers, icon: Heart, href: "/admin/prayers" },
+    { label: "Lượt đồng nguyện", value: stats.reactions, icon: Activity, href: "/admin/prayers" },
+    { label: "Thông điệp", value: stats.messages, icon: MessageSquareText, href: "/admin/messages" },
+    { label: "Báo cáo chờ xử lý", value: stats.pending_reports, icon: FileWarning, href: "/admin/reports?status=pending" }
   ];
 
   return (
@@ -47,11 +48,11 @@ export default async function AdminPage() {
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {cards.map((card) => (
-          <article key={card.label} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <Link key={card.label} href={card.href} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow">
             <card.icon size={22} className="text-amber-700" aria-hidden="true" />
             <p className="mt-4 text-3xl font-semibold">{Number(card.value || 0).toLocaleString("vi-VN")}</p>
             <p className="mt-1 text-sm text-slate-500">{card.label}</p>
-          </article>
+          </Link>
         ))}
       </section>
 
@@ -67,6 +68,7 @@ export default async function AdminPage() {
               <span className={`w-fit rounded px-2 py-1 text-xs font-medium ${item.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{item.status}</span>
             </div>
           ))}
+          {!recent.length ? <p className="p-10 text-center text-sm text-slate-500">Chưa có lời bình an nào.</p> : null}
         </div>
       </section>
     </div>

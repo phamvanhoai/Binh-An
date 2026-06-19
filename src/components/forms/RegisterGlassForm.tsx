@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, LockKeyhole, Mail, Phone, UserPlus, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-export function RegisterGlassForm() {
+export function RegisterGlassForm({ enabled = true, supportEmail = "" }: { enabled?: boolean; supportEmail?: string }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -15,6 +15,7 @@ export function RegisterGlassForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   async function signUpWithGoogle() {
+    if (!enabled) return;
     setGoogleLoading(true);
     setMessage(null);
 
@@ -33,6 +34,7 @@ export function RegisterGlassForm() {
   }
 
   async function onSubmit(formData: FormData) {
+    if (!enabled) return;
     setLoading(true);
     setMessage(null);
 
@@ -70,7 +72,16 @@ export function RegisterGlassForm() {
         <p className="mt-2 text-sm text-slate-300 sm:text-base">Tạo tài khoản để bắt đầu hành trình bình an</p>
       </div>
 
-      <form action={onSubmit} className="mt-6 grid gap-4">
+      {!enabled ? (
+        <div className="mt-6 rounded-xl border border-amber-300/20 bg-amber-300/10 px-5 py-4 text-center">
+          <p className="font-semibold text-amber-100">Đăng ký đang tạm đóng</p>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Vui lòng quay lại sau{supportEmail ? <> hoặc liên hệ <a href={`mailto:${supportEmail}`} className="text-amber-200">{supportEmail}</a></> : null}.
+          </p>
+        </div>
+      ) : null}
+
+      <form action={onSubmit} className={`mt-6 grid gap-4 ${enabled ? "" : "pointer-events-none opacity-45"}`}>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2 text-sm font-medium text-white">
             Họ và tên
@@ -192,7 +203,7 @@ export function RegisterGlassForm() {
         <button
           type="button"
           onClick={signUpWithGoogle}
-          disabled={googleLoading}
+          disabled={googleLoading || !enabled}
           className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-base font-bold text-blue-500">G</span>

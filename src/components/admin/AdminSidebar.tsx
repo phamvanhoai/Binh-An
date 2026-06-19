@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, FileWarning, Home, MessageSquareText, Shield, Users } from "lucide-react";
+import { BarChart3, FileWarning, Home, MessageSquareText, Settings, Shield, Users } from "lucide-react";
 import { LogoutButton } from "@/components/layout/LogoutButton";
 
 const items = [
@@ -10,7 +10,8 @@ const items = [
   { href: "/admin/messages", label: "Thông điệp", icon: MessageSquareText },
   { href: "/admin/prayers", label: "Lời bình an", icon: Shield },
   { href: "/admin/reports", label: "Báo cáo", icon: FileWarning },
-  { href: "/admin/users", label: "Người dùng", icon: Users }
+  { href: "/admin/users", label: "Người dùng", icon: Users },
+  { href: "/admin/settings", label: "Cấu hình", icon: Settings }
 ];
 
 export function AdminSidebar() {
@@ -52,6 +53,10 @@ export function AdminSidebar() {
             );
           })}
         </nav>
+
+        <div className="mt-3 lg:hidden">
+          <LogoutButton compact />
+        </div>
 
         <div className="mt-auto hidden grid-cols-1 gap-2 pt-6 lg:grid">
           <Link href="/" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100">

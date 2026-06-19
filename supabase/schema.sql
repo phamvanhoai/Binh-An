@@ -14,6 +14,17 @@ create table if not exists admin_users (
   created_at timestamptz default now()
 );
 
+create table if not exists site_settings (
+  id boolean primary key default true check (id = true),
+  allow_registration boolean not null default true,
+  public_community_enabled boolean not null default true,
+  moderate_new_prayers boolean not null default false,
+  community_page_size integer not null default 8 check (community_page_size between 4 and 30),
+  support_email text,
+  updated_at timestamptz default now(),
+  updated_by uuid references auth.users(id) on delete set null
+);
+
 create table if not exists daily_messages (
   id uuid primary key default gen_random_uuid(),
   message text not null,
@@ -109,6 +120,7 @@ create table if not exists reports (
 
 alter table profiles enable row level security;
 alter table admin_users enable row level security;
+alter table site_settings enable row level security;
 alter table daily_messages enable row level security;
 alter table user_daily_messages enable row level security;
 alter table prayers enable row level security;
@@ -129,6 +141,10 @@ from auth.users
 where not exists (select 1 from admin_users)
 order by created_at
 limit 1
+on conflict do nothing;
+
+insert into site_settings (id)
+values (true)
 on conflict do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

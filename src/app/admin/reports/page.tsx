@@ -1,14 +1,27 @@
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { dbQuery } from "@/lib/db";
+
+const pageSize = 20;
 
 export default async function AdminReportsPage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const query = (params.q || "").trim();
   const status = ["pending", "resolved", "dismissed"].includes(params.status || "") ? params.status! : "";
+  const page = Math.max(1, Number(params.page || 1) || 1);
+  const countResult = await dbQuery<{ count: string }>(`
+    select count(*)::text as count
+    from public.reports r
+    left join public.prayers p on r.target_type = 'prayer' and p.id = r.target_id
+    where ($1 = '' or r.reason ilike '%' || $1 || '%' or p.content ilike '%' || $1 || '%')
+      and ($2 = '' or coalesce(r.status, 'pending') = $2)
+  `, [query, status]);
+  const totalPages = Math.max(1, Math.ceil(Number(countResult.rows[0]?.count || 0) / pageSize));
+  const currentPage = Math.min(page, totalPages);
   const result = await dbQuery<{
     id: string;
     reason: string;
@@ -23,9 +36,10 @@ export default async function AdminReportsPage({
     from public.reports r
     left join public.prayers p on r.target_type = 'prayer' and p.id = r.target_id
     where ($1 = '' or r.reason ilike '%' || $1 || '%' or p.content ilike '%' || $1 || '%')
-      and ($2 = '' or r.status = $2)
+      and ($2 = '' or coalesce(r.status, 'pending') = $2)
     order by case when r.status = 'pending' then 0 else 1 end, r.created_at desc
-  `, [query, status]);
+    limit $3 offset $4
+  `, [query, status, pageSize, (currentPage - 1) * pageSize]);
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -54,8 +68,19 @@ export default async function AdminReportsPage({
                 </div>
                 <span className={`w-fit rounded px-2 py-1 text-xs font-medium ${item.status === "pending" ? "bg-amber-50 text-amber-700" : item.status === "resolved" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{item.status}</span>
                 <div className="flex flex-wrap gap-2 lg:justify-end">
-                  <AdminActionButton endpoint={`/api/admin/reports/${item.id}`} body={{ status: "resolved" }} tone="success">Đã xử lý</AdminActionButton>
-                  <AdminActionButton endpoint={`/api/admin/reports/${item.id}`} body={{ status: "dismissed" }}>Bỏ qua</AdminActionButton>
+                  {item.status === "pending" ? (
+                    <>
+                      {item.target_type === "prayer" ? (
+                        <AdminActionButton endpoint={`/api/admin/reports/${item.id}`} body={{ status: "resolved", hide_target: true }} tone="danger" confirmText="Ẩn lời bình an bị báo cáo và đánh dấu đã xử lý?">
+                          Ẩn nội dung & xử lý
+                        </AdminActionButton>
+                      ) : null}
+                      <AdminActionButton endpoint={`/api/admin/reports/${item.id}`} body={{ status: "resolved" }} tone="success">Đã xử lý</AdminActionButton>
+                      <AdminActionButton endpoint={`/api/admin/reports/${item.id}`} body={{ status: "dismissed" }}>Bỏ qua</AdminActionButton>
+                    </>
+                  ) : (
+                    <AdminActionButton endpoint={`/api/admin/reports/${item.id}`} body={{ status: "pending" }}>Mở lại</AdminActionButton>
+                  )}
                 </div>
               </article>
             ))}
@@ -63,6 +88,7 @@ export default async function AdminReportsPage({
         ) : (
           <p className="p-10 text-center text-sm text-slate-500">Chưa có báo cáo nào.</p>
         )}
+        <AdminPagination page={currentPage} totalPages={totalPages} params={{ q: query, status }} />
       </section>
     </div>
   );

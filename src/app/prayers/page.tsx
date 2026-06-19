@@ -7,6 +7,7 @@ import { NotificationBell } from "@/components/layout/NotificationBell";
 import { demoPrayers } from "@/lib/demo-data";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { todayKey } from "@/lib/utils";
+import { getSiteSettings } from "@/lib/site-settings";
 
 type PrayerType = "wish" | "gratitude" | "memorial" | "worry" | "peace";
 type RitualMode = "candle" | "incense" | "lantern";
@@ -36,6 +37,7 @@ type CommunityData = {
     totalPages: number;
   };
   source: "supabase" | "demo";
+  enabled: boolean;
 };
 
 const filters = ["Tất cả", "Cầu bình an", "Biết ơn", "Tưởng nhớ"];
@@ -78,6 +80,7 @@ function fallbackData(page = 1, pageSize = 8): CommunityData {
 
   return {
     source: "demo",
+    enabled: true,
     prayers: paged.map((item) => {
       const mode = typeToMode[item.type as PrayerType] || "candle";
       const visual = modeVisuals[mode];
@@ -107,7 +110,18 @@ function fallbackData(page = 1, pageSize = 8): CommunityData {
   };
 }
 
-async function getCommunityData(page: number, pageSize = 8): Promise<CommunityData> {
+async function getCommunityData(page: number): Promise<CommunityData> {
+  const settings = await getSiteSettings();
+  const pageSize = settings.communityPageSize;
+  if (!settings.publicCommunityEnabled) {
+    return {
+      prayers: [],
+      stats: { todayPrayers: 0, totalReactions: 0, candlePrayers: 0 },
+      pagination: { page: 1, pageSize, total: 0, totalPages: 1 },
+      source: "supabase",
+      enabled: false
+    };
+  }
   if (!hasSupabaseEnv()) return fallbackData(page, pageSize);
 
   const supabase = await createClient();
@@ -155,6 +169,7 @@ async function getCommunityData(page: number, pageSize = 8): Promise<CommunityDa
 
   return {
     source: "supabase",
+    enabled: true,
     prayers: rows.map((item) => {
       const mode = typeToMode[item.type as PrayerType] || "candle";
       const visual = modeVisuals[mode];
@@ -241,7 +256,17 @@ export default async function PrayersPage({ searchParams }: { searchParams: Prom
           </div>
         </header>
 
-        <div className="dashboard-content-grid">
+        {!data.enabled ? (
+          <section className="dashboard-frame mt-6 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-5 py-8 text-center">
+            <h2 className="text-xl font-semibold text-amber-100">Cộng đồng đang tạm đóng</h2>
+            <p className="mt-2 text-sm text-slate-300">Bạn vẫn có thể gửi và lưu lời bình an ở chế độ riêng tư.</p>
+            <Link href="/prayers/new" className="mt-5 inline-flex rounded-xl bg-amber-300/15 px-4 py-3 text-sm font-semibold text-amber-100">
+              Gửi lời bình an riêng tư
+            </Link>
+          </section>
+        ) : null}
+
+        <div className={`dashboard-content-grid ${data.enabled ? "" : "hidden"}`}>
           <section className="grid gap-6">
             <section className="relative min-h-[20rem] overflow-hidden rounded-2xl border border-white/10 bg-[#0d1525] p-5 shadow-2xl shadow-black/25 sm:p-8">
               <Image

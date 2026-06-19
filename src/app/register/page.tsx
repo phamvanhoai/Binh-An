@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Heart, ShieldCheck, Sprout, Users } from "lucide-react";
 import { RegisterGlassForm } from "@/components/forms/RegisterGlassForm";
 import { RitualMiniImage } from "@/components/layout/DashboardSidebar";
+import { getSiteSettings } from "@/lib/site-settings";
 
 const benefits = [
   {
@@ -19,7 +20,8 @@ const benefits = [
   }
 ];
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const settings = await getSiteSettings();
   return (
     <div className="auth-shell min-h-screen overflow-x-hidden bg-[#06111f] text-slate-100">
       <Image
@@ -76,7 +78,7 @@ export default function RegisterPage() {
 
         <section className="flex items-center justify-center py-2">
           <div className="w-full max-w-[43rem] xl:max-w-[46rem]">
-            <RegisterGlassForm />
+            <RegisterGlassForm enabled={settings.allowRegistration} supportEmail={settings.supportEmail} />
           </div>
         </section>
       </main>

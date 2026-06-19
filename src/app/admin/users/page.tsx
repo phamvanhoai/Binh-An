@@ -1,16 +1,33 @@
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { dbQuery } from "@/lib/db";
 import { requireAdminPage } from "@/lib/admin";
+
+const pageSize = 20;
 
 export default async function AdminUsersPage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string; role?: string }>;
+  searchParams: Promise<{ q?: string; role?: string; page?: string }>;
 }) {
   const currentUser = await requireAdminPage();
   const params = await searchParams;
   const query = (params.q || "").trim();
   const role = ["admin", "user"].includes(params.role || "") ? params.role! : "";
+  const page = Math.max(1, Number(params.page || 1) || 1);
+  const countResult = await dbQuery<{ count: string }>(`
+    select count(*)::text as count
+    from auth.users u
+    left join public.profiles p on p.id = u.id
+    where ($1 = '' or coalesce(u.email, '') ilike '%' || $1 || '%' or coalesce(p.display_name, '') ilike '%' || $1 || '%')
+      and (
+        $2 = ''
+        or ($2 = 'admin' and exists(select 1 from public.admin_users a where a.user_id = u.id))
+        or ($2 = 'user' and not exists(select 1 from public.admin_users a where a.user_id = u.id))
+      )
+  `, [query, role]);
+  const totalPages = Math.max(1, Math.ceil(Number(countResult.rows[0]?.count || 0) / pageSize));
+  const currentPage = Math.min(page, totalPages);
   const result = await dbQuery<{
     id: string;
     email: string | null;
@@ -30,7 +47,8 @@ export default async function AdminUsersPage({
         or ($2 = 'user' and not exists(select 1 from public.admin_users a where a.user_id = u.id))
       )
     order by u.created_at desc
-  `, [query, role]);
+    limit $3 offset $4
+  `, [query, role, pageSize, (currentPage - 1) * pageSize]);
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -82,9 +100,15 @@ export default async function AdminUsersPage({
                   </td>
                 </tr>
               ))}
+              {!result.rows.length ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500">Không tìm thấy người dùng phù hợp.</td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
+        <AdminPagination page={currentPage} totalPages={totalPages} params={{ q: query, role }} />
       </section>
     </div>
   );

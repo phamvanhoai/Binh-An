@@ -3,7 +3,10 @@ import { getAdminOrError } from "@/lib/admin";
 import { dbQuery } from "@/lib/db";
 import { fail, ok } from "@/lib/utils";
 
-const schema = z.object({ status: z.enum(["pending", "resolved", "dismissed"]) });
+const schema = z.object({
+  status: z.enum(["pending", "resolved", "dismissed"]),
+  hide_target: z.boolean().optional()
+});
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const admin = await getAdminOrError();
@@ -13,8 +16,21 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const { id } = await context.params;
 
   const result = await dbQuery(
-    "update public.reports set status = $1, updated_at = now() where id = $2 returning *",
-    [parsed.data.status, id]
+    `with report_row as (
+       update public.reports
+       set status = $1, updated_at = now()
+       where id = $2
+       returning *
+     ),
+     hidden_prayer as (
+       update public.prayers
+       set status = 'hidden', updated_at = now()
+       where $3 = true
+         and id = (select target_id from report_row where target_type = 'prayer')
+       returning id
+     )
+     select * from report_row`,
+    [parsed.data.status, id, parsed.data.hide_target === true]
   );
   if (!result.rowCount) return fail("Không tìm thấy báo cáo.", 404);
   return ok(result.rows[0]);

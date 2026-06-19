@@ -3,11 +3,14 @@ import { demoPrayers } from "@/lib/demo-data";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { prayerSchema } from "@/lib/validations/prayer";
 import { fail, ok } from "@/lib/utils";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export async function GET(request: Request) {
   if (!hasSupabaseEnv()) {
     return ok(demoPrayers);
   }
+  const settings = await getSiteSettings();
+  if (!settings.publicCommunityEnabled) return ok([]);
 
   const { searchParams } = new URL(request.url);
   const page = Number(searchParams.get("page") || 1);
@@ -37,10 +40,13 @@ export async function POST(request: Request) {
 
   const parsed = prayerSchema.safeParse(await request.json());
   if (!parsed.success) return fail(parsed.error.issues[0]?.message || "Invalid payload");
+  const settings = await getSiteSettings();
+  const visibility = settings.publicCommunityEnabled ? parsed.data.visibility : "private";
+  const status = visibility === "public_anonymous" && settings.moderateNewPrayers ? "hidden" : "active";
 
   const { data, error } = await auth.supabase
     .from("prayers")
-    .insert({ ...parsed.data, user_id: auth.user.id })
+    .insert({ ...parsed.data, visibility, status, user_id: auth.user.id })
     .select()
     .single();
 

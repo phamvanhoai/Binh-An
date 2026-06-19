@@ -1,15 +1,28 @@
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { dbQuery } from "@/lib/db";
+
+const pageSize = 20;
 
 export default async function AdminPrayersPage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string; status?: string; type?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; type?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const query = (params.q || "").trim();
   const status = ["active", "hidden", "deleted"].includes(params.status || "") ? params.status! : "";
   const type = ["wish", "gratitude", "memorial", "worry", "peace"].includes(params.type || "") ? params.type! : "";
+  const page = Math.max(1, Number(params.page || 1) || 1);
+  const countResult = await dbQuery<{ count: string }>(`
+    select count(*)::text as count
+    from public.prayers p
+    where ($1 = '' or p.content ilike '%' || $1 || '%')
+      and ($2 = '' or p.status = $2)
+      and ($3 = '' or p.type = $3)
+  `, [query, status, type]);
+  const totalPages = Math.max(1, Math.ceil(Number(countResult.rows[0]?.count || 0) / pageSize));
+  const currentPage = Math.min(page, totalPages);
   const result = await dbQuery<{
     id: string;
     content: string;
@@ -28,8 +41,8 @@ export default async function AdminPrayersPage({
       and ($3 = '' or p.type = $3)
     group by p.id
     order by p.created_at desc
-    limit 200
-  `, [query, status, type]);
+    limit $4 offset $5
+  `, [query, status, type, pageSize, (currentPage - 1) * pageSize]);
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -77,6 +90,7 @@ export default async function AdminPrayersPage({
           ))}
           {!result.rows.length ? <p className="p-10 text-center text-sm text-slate-500">Không tìm thấy lời bình an phù hợp.</p> : null}
         </div>
+        <AdminPagination page={currentPage} totalPages={totalPages} params={{ q: query, status, type }} />
       </section>
     </div>
   );

@@ -52,6 +52,14 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
   const { id } = await context.params;
 
   try {
+    const usage = await dbQuery<{ count: string }>(
+      "select count(*)::text as count from public.user_daily_messages where message_id = $1",
+      [id]
+    );
+    if (Number(usage.rows[0]?.count || 0) > 0) {
+      return fail("Thông điệp đã có lịch sử người dùng mở. Hãy tắt thay vì xóa.", 409);
+    }
+
     const result = await dbQuery(
       "delete from public.daily_messages where id = $1 returning id",
       [id]
