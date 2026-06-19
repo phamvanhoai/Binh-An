@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BarChart3, FileWarning, Home, MessageSquareText, Shield, Users } from "lucide-react";
 import { LogoutButton } from "@/components/layout/LogoutButton";
 
@@ -11,6 +14,8 @@ const items = [
 ];
 
 export function AdminSidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="border-b border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:border-b-0 lg:border-r">
       <div className="flex h-full flex-col p-4">
@@ -30,12 +35,22 @@ export function AdminSidebar() {
         </div>
 
         <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:mt-8 lg:grid lg:overflow-visible">
-          {items.map((item) => (
-            <Link key={item.href} href={item.href} className="inline-flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950">
-              <item.icon size={18} aria-hidden="true" />
-              {item.label}
-            </Link>
-          ))}
+          {items.map((item) => {
+            const active = item.href === "/admin" ? pathname === item.href : pathname.startsWith(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`inline-flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  active ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                }`}
+              >
+                <item.icon size={18} className={active ? "text-amber-300" : undefined} aria-hidden="true" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="mt-auto hidden grid-cols-1 gap-2 pt-6 lg:grid">

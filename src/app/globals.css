@@ -44,13 +44,19 @@ a {
 body:has(.ritual-dashboard) > header,
 body:has(.ritual-dashboard) > footer,
 body:has(.auth-shell) > header,
-body:has(.auth-shell) > footer {
+body:has(.auth-shell) > footer,
+body:has(.admin-shell) > header,
+body:has(.admin-shell) > footer {
   display: none;
 }
 
 body:has(.ritual-dashboard),
 body:has(.auth-shell) {
   background: #080d19;
+}
+
+body:has(.admin-shell) {
+  background: #f1f5f9;
 }
 
 .dashboard-main {

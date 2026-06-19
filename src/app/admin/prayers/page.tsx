@@ -1,7 +1,15 @@
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
 import { dbQuery } from "@/lib/db";
 
-export default async function AdminPrayersPage() {
+export default async function AdminPrayersPage({
+  searchParams
+}: {
+  searchParams: Promise<{ q?: string; status?: string; type?: string }>;
+}) {
+  const params = await searchParams;
+  const query = (params.q || "").trim();
+  const status = ["active", "hidden", "deleted"].includes(params.status || "") ? params.status! : "";
+  const type = ["wish", "gratitude", "memorial", "worry", "peace"].includes(params.type || "") ? params.type! : "";
   const result = await dbQuery<{
     id: string;
     content: string;
@@ -15,10 +23,13 @@ export default async function AdminPrayersPage() {
       count(r.id)::text as reactions
     from public.prayers p
     left join public.prayer_reactions r on r.prayer_id = p.id
+    where ($1 = '' or p.content ilike '%' || $1 || '%')
+      and ($2 = '' or p.status = $2)
+      and ($3 = '' or p.type = $3)
     group by p.id
     order by p.created_at desc
     limit 200
-  `);
+  `, [query, status, type]);
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -26,6 +37,24 @@ export default async function AdminPrayersPage() {
         <h1 className="text-2xl font-semibold sm:text-3xl">Kiểm duyệt lời bình an</h1>
         <p className="mt-2 text-sm text-slate-500">Ẩn nội dung vi phạm hoặc khôi phục nội dung phù hợp.</p>
       </header>
+      <form className="mt-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_12rem_12rem_auto]">
+        <input name="q" defaultValue={query} placeholder="Tìm trong nội dung..." className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-600" />
+        <select name="status" defaultValue={status} className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-600">
+          <option value="">Mọi trạng thái</option>
+          <option value="active">Đang hiển thị</option>
+          <option value="hidden">Đã ẩn</option>
+          <option value="deleted">Đã xóa</option>
+        </select>
+        <select name="type" defaultValue={type} className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-600">
+          <option value="">Mọi loại</option>
+          <option value="peace">Bình an</option>
+          <option value="wish">Ước nguyện</option>
+          <option value="gratitude">Biết ơn</option>
+          <option value="memorial">Tưởng nhớ</option>
+          <option value="worry">Lo âu</option>
+        </select>
+        <button className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white">Lọc</button>
+      </form>
       <section className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="divide-y divide-slate-100">
           {result.rows.map((item) => (
@@ -46,6 +75,7 @@ export default async function AdminPrayersPage() {
               </div>
             </article>
           ))}
+          {!result.rows.length ? <p className="p-10 text-center text-sm text-slate-500">Không tìm thấy lời bình an phù hợp.</p> : null}
         </div>
       </section>
     </div>

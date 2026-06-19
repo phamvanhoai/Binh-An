@@ -1,5 +1,6 @@
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
 import { DailyMessageForm } from "@/components/admin/DailyMessageForm";
+import { DailyMessageEditor } from "@/components/admin/DailyMessageEditor";
 import { dbQuery } from "@/lib/db";
 
 export default async function AdminMessagesPage() {
@@ -31,6 +32,7 @@ export default async function AdminMessagesPage() {
                   <th className="px-4 py-3">Danh mục</th>
                   <th className="px-4 py-3">Ngày</th>
                   <th className="px-4 py-3">Trạng thái</th>
+                  <th className="px-4 py-3 text-right">Bật/tắt</th>
                   <th className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -50,6 +52,15 @@ export default async function AdminMessagesPage() {
                       <AdminActionButton endpoint={`/api/admin/messages/${item.id}`} body={{ is_active: !item.is_active }} tone={item.is_active ? "danger" : "success"}>
                         {item.is_active ? "Tắt" : "Bật"}
                       </AdminActionButton>
+                    </td>
+                    <td className="px-4 py-4">
+                      <DailyMessageEditor
+                        id={item.id}
+                        message={item.message}
+                        reflectionQuestion={item.reflection_question || ""}
+                        category={item.category}
+                        activeDate={item.active_date ? item.active_date.slice(0, 10) : ""}
+                      />
                     </td>
                   </tr>
                 ))}

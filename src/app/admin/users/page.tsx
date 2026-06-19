@@ -2,8 +2,15 @@ import { AdminActionButton } from "@/components/admin/AdminActionButton";
 import { dbQuery } from "@/lib/db";
 import { requireAdminPage } from "@/lib/admin";
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams
+}: {
+  searchParams: Promise<{ q?: string; role?: string }>;
+}) {
   const currentUser = await requireAdminPage();
+  const params = await searchParams;
+  const query = (params.q || "").trim();
+  const role = ["admin", "user"].includes(params.role || "") ? params.role! : "";
   const result = await dbQuery<{
     id: string;
     email: string | null;
@@ -16,8 +23,14 @@ export default async function AdminUsersPage() {
       exists(select 1 from public.admin_users a where a.user_id = u.id) as is_admin
     from auth.users u
     left join public.profiles p on p.id = u.id
+    where ($1 = '' or coalesce(u.email, '') ilike '%' || $1 || '%' or coalesce(p.display_name, '') ilike '%' || $1 || '%')
+      and (
+        $2 = ''
+        or ($2 = 'admin' and exists(select 1 from public.admin_users a where a.user_id = u.id))
+        or ($2 = 'user' and not exists(select 1 from public.admin_users a where a.user_id = u.id))
+      )
     order by u.created_at desc
-  `);
+  `, [query, role]);
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -25,6 +38,15 @@ export default async function AdminUsersPage() {
         <h1 className="text-2xl font-semibold sm:text-3xl">Người dùng</h1>
         <p className="mt-2 text-sm text-slate-500">Theo dõi tài khoản và phân quyền quản trị.</p>
       </header>
+      <form className="mt-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
+        <input name="q" defaultValue={query} placeholder="Tìm tên hoặc email..." className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-600" />
+        <select name="role" defaultValue={role} className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-600">
+          <option value="">Mọi quyền</option>
+          <option value="admin">Admin</option>
+          <option value="user">Người dùng</option>
+        </select>
+        <button className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white">Lọc</button>
+      </form>
       <section className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
