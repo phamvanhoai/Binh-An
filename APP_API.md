@@ -108,6 +108,8 @@ The deep link must be configured in Supabase Authentication Redirect URLs.
 `GET /config`
 
 Returns registration status, community status, default page size, and support email.
+Admin can manage API availability, maintenance mode, CORS origins, and per-minute
+rate limits from `/admin/settings`.
 
 ## Profile
 

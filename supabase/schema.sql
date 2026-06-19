@@ -21,8 +21,20 @@ create table if not exists site_settings (
   moderate_new_prayers boolean not null default false,
   community_page_size integer not null default 8 check (community_page_size between 4 and 30),
   support_email text,
+  api_enabled boolean not null default true,
+  api_maintenance boolean not null default false,
+  api_maintenance_message text not null default 'API đang bảo trì. Vui lòng thử lại sau.',
+  api_allowed_origins text[] not null default array['*']::text[],
+  api_rate_limit_per_minute integer not null default 120 check (api_rate_limit_per_minute between 10 and 5000),
   updated_at timestamptz default now(),
   updated_by uuid references auth.users(id) on delete set null
+);
+
+create table if not exists api_rate_limits (
+  identifier text not null,
+  window_start timestamptz not null,
+  request_count integer not null default 1,
+  primary key (identifier, window_start)
 );
 
 create table if not exists daily_messages (
@@ -121,6 +133,7 @@ create table if not exists reports (
 alter table profiles enable row level security;
 alter table admin_users enable row level security;
 alter table site_settings enable row level security;
+alter table api_rate_limits enable row level security;
 alter table daily_messages enable row level security;
 alter table user_daily_messages enable row level security;
 alter table prayers enable row level security;

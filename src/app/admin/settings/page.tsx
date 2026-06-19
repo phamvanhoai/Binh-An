@@ -1,8 +1,10 @@
 import { SiteSettingsForm } from "@/components/admin/SiteSettingsForm";
-import { getSiteSettings } from "@/lib/site-settings";
+import { ApiSettingsForm } from "@/components/admin/ApiSettingsForm";
+import { getApiSettings, getSiteSettings } from "@/lib/site-settings";
 
 export default async function AdminSettingsPage() {
-  const settings = await getSiteSettings();
+  const [settings, apiSettings] = await Promise.all([getSiteSettings(), getApiSettings()]);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -12,6 +14,7 @@ export default async function AdminSettingsPage() {
       </header>
       <div className="mt-6">
         <SiteSettingsForm settings={settings} />
+        <ApiSettingsForm settings={apiSettings} baseUrl={baseUrl} />
       </div>
     </div>
   );
