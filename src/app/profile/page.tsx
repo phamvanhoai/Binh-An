@@ -10,12 +10,14 @@ import {
   Mail,
   Medal,
   Search,
+  ShieldCheck,
   Sparkles,
   UserRound
 } from "lucide-react";
 import { DashboardSidebar, RitualMiniImage } from "@/components/layout/DashboardSidebar";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
+import { dbQuery } from "@/lib/db";
 
 type Activity = {
   id: string;
@@ -31,6 +33,7 @@ type ProfileData = {
   bio: string;
   avatarUrl: string | null;
   joinedAt: string | null;
+  isAdmin: boolean;
   stats: {
     streak: number;
     prayers: number;
@@ -210,6 +213,10 @@ async function getProfileData(): Promise<ProfileData> {
     .slice(0, 6);
 
   const profile = profileResult.data;
+  const adminResult = await dbQuery<{ exists: boolean }>(
+    "select exists(select 1 from public.admin_users where user_id = $1) as exists",
+    [user.id]
+  );
 
   return {
     email: user.email || "Chưa có email",
@@ -217,6 +224,7 @@ async function getProfileData(): Promise<ProfileData> {
     bio: profile?.bio || "Đang nuôi dưỡng một hành trình bình an mỗi ngày.",
     avatarUrl: profile?.avatar_url || user.user_metadata?.avatar_url || null,
     joinedAt: profile?.created_at || user.created_at || null,
+    isAdmin: adminResult.rows[0]?.exists === true,
     stats: {
       streak: calculateStreak((openedDaysResult.data || []).map((row) => row.opened_date)),
       prayers: prayers.length,
@@ -294,10 +302,18 @@ export default async function ProfilePage() {
                     </span>
                   </div>
                 </div>
-                <Link href="/profile/edit" className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-[#8b5d1d] via-[#b87928] to-[#d69a3a] px-5 py-3 font-semibold text-white shadow-[0_18px_40px_rgba(251,191,36,0.18)] transition hover:brightness-110">
-                  <Edit3 size={17} aria-hidden="true" />
-                  Chỉnh sửa hồ sơ
-                </Link>
+                <div className="flex flex-col gap-3">
+                  {profile.isAdmin ? (
+                    <Link href="/admin" className="inline-flex w-fit items-center gap-2 rounded-xl border border-amber-300/25 bg-amber-300/12 px-5 py-3 font-semibold text-amber-100 transition hover:bg-amber-300/18">
+                      <ShieldCheck size={17} aria-hidden="true" />
+                      Mở trang quản trị
+                    </Link>
+                  ) : null}
+                  <Link href="/profile/edit" className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-[#8b5d1d] via-[#b87928] to-[#d69a3a] px-5 py-3 font-semibold text-white shadow-[0_18px_40px_rgba(251,191,36,0.18)] transition hover:brightness-110">
+                    <Edit3 size={17} aria-hidden="true" />
+                    Chỉnh sửa hồ sơ
+                  </Link>
+                </div>
               </div>
             </section>
 

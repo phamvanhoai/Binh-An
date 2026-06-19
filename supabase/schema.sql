@@ -9,6 +9,11 @@ create table if not exists profiles (
   updated_at timestamptz default now()
 );
 
+create table if not exists admin_users (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz default now()
+);
+
 create table if not exists daily_messages (
   id uuid primary key default gen_random_uuid(),
   message text not null,
@@ -103,6 +108,7 @@ create table if not exists reports (
 );
 
 alter table profiles enable row level security;
+alter table admin_users enable row level security;
 alter table daily_messages enable row level security;
 alter table user_daily_messages enable row level security;
 alter table prayers enable row level security;
@@ -116,6 +122,14 @@ alter table reports enable row level security;
 create policy "profiles are public" on profiles for select using (true);
 create policy "users update own profile" on profiles for update using (auth.uid() = id);
 create policy "users insert own profile" on profiles for insert with check (auth.uid() = id);
+
+insert into admin_users (user_id)
+select id
+from auth.users
+where not exists (select 1 from admin_users)
+order by created_at
+limit 1
+on conflict do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
