@@ -25,7 +25,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       setMessage(result.error.message);
       return;
     }
-    router.push("/dashboard");
+    router.push("/profile");
     router.refresh();
   }
 

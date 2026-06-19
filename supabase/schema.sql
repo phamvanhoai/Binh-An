@@ -117,6 +117,40 @@ create policy "profiles are public" on profiles for select using (true);
 create policy "users update own profile" on profiles for update using (auth.uid() = id);
 create policy "users insert own profile" on profiles for insert with check (auth.uid() = id);
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'avatars',
+  'avatars',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+create policy "public reads avatars" on storage.objects
+  for select using (bucket_id = 'avatars');
+
+create policy "users upload own avatar" on storage.objects
+  for insert with check (
+    bucket_id = 'avatars'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "users update own avatar" on storage.objects
+  for update using (
+    bucket_id = 'avatars'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "users delete own avatar" on storage.objects
+  for delete using (
+    bucket_id = 'avatars'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
 create policy "active daily messages are readable" on daily_messages for select using (is_active = true);
 
 create policy "users read own daily opens" on user_daily_messages for select using (auth.uid() = user_id);

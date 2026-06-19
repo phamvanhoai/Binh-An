@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Bell,
   CalendarHeart,
   ChevronRight,
   Clock3,
@@ -15,6 +14,7 @@ import {
   Trophy
 } from "lucide-react";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 const letters = [
   {
@@ -70,8 +70,8 @@ export default function LettersPage() {
     <div className="ritual-dashboard min-h-screen bg-[#080d19] text-slate-100">
       <DashboardSidebar activeHref="/letters" variant="prayers" />
 
-      <main className="min-h-screen px-4 py-6 xl:ml-72 2xl:px-8">
-        <header className="mx-auto flex max-w-[1600px] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <main className="dashboard-main">
+        <header className="dashboard-frame flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-white md:text-3xl">Gửi mình trong tương lai</h1>
             <p className="mt-2 text-sm text-slate-400">Viết một bức thư cho chính bạn trong tương lai và nhận lại vào ngày bạn chọn.</p>
@@ -81,15 +81,16 @@ export default function LettersPage() {
               <Search size={18} aria-hidden="true" />
               <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="Tìm kiếm lời nguyện, người dùng..." />
             </label>
-            <button className="relative grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/6">
-              <Bell size={18} aria-hidden="true" />
-              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500" />
-            </button>
-            <div className="h-11 w-11 rounded-full border border-amber-200/30 bg-[radial-gradient(circle_at_40%_30%,#f8d7a1,#7c4a2f_58%,#1f2937)]" />
+            <NotificationBell />
+            <Link
+              href="/profile"
+              aria-label="Mở hồ sơ cá nhân"
+              className="h-11 w-11 rounded-full border border-amber-200/30 bg-[radial-gradient(circle_at_40%_30%,#f8d7a1,#7c4a2f_58%,#1f2937)]"
+            />
           </div>
         </header>
 
-        <div className="mx-auto mt-6 grid max-w-[1600px] gap-6 2xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <div className="dashboard-content-grid">
           <section className="grid gap-6">
             <section className="relative min-h-[23rem] overflow-hidden rounded-2xl border border-white/10 bg-[#0d1525] p-8 shadow-2xl shadow-black/25">
               <Image

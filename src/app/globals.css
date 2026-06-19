@@ -53,6 +53,53 @@ body:has(.auth-shell) {
   background: #080d19;
 }
 
+.dashboard-main {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: 1rem 0.75rem;
+}
+
+.dashboard-frame {
+  width: 100%;
+  max-width: 93.75rem;
+  margin-inline: auto;
+}
+
+.dashboard-content-grid {
+  display: grid;
+  width: 100%;
+  max-width: 93.75rem;
+  min-width: 0;
+  margin: 1.5rem auto 0;
+  gap: 1.5rem;
+}
+
+.dashboard-content-grid > * {
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .dashboard-main {
+    padding: 1.5rem 1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .dashboard-main {
+    margin-left: 18rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .dashboard-main {
+    padding-inline: 2rem;
+  }
+
+  .dashboard-content-grid {
+    grid-template-columns: minmax(0, 1fr) 24rem;
+  }
+}
+
 .ritual-option-card {
   position: relative;
   background:

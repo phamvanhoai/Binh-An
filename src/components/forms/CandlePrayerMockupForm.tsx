@@ -70,10 +70,12 @@ const chips = ["Mong ước", "Biết ơn", "Cầu nguyện", "Cho bản thân",
 
 export function CandlePrayerMockupForm({
   mode,
-  onModeChange
+  onModeChange,
+  onCreated
 }: {
   mode: RitualMode;
   onModeChange: (mode: RitualMode) => void;
+  onCreated?: () => void;
 }) {
   const [selected, setSelected] = useState(0);
   const [visibility, setVisibility] = useState<"public_anonymous" | "private">("public_anonymous");
@@ -108,7 +110,7 @@ export function CandlePrayerMockupForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         content: previewText,
-        type: mode === "incense" ? "memorial" : "peace",
+        type: mode === "incense" ? "memorial" : mode === "lantern" ? "wish" : "peace",
         visibility,
         allow_reactions: true
       })
@@ -124,6 +126,8 @@ export function CandlePrayerMockupForm({
     setIsActive(true);
     setIgniteKey((value) => value + 1);
     setMessage(copy.success);
+    setContent("");
+    onCreated?.();
   }
 
   return (

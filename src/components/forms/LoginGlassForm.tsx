@@ -11,7 +11,26 @@ export function LoginGlassForm() {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  async function signInWithGoogle() {
+    setGoogleLoading(true);
+    setMessage(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/profile`
+      }
+    });
+
+    if (error) {
+      setGoogleLoading(false);
+      setMessage(error.message);
+    }
+  }
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
@@ -29,7 +48,7 @@ export function LoginGlassForm() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/profile");
     router.refresh();
   }
 
@@ -97,14 +116,15 @@ export function LoginGlassForm() {
         <span className="h-px flex-1 bg-white/14" />
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <button className="flex items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.055] px-4 py-3.5 text-sm font-medium text-white transition hover:bg-white/10">
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={signInWithGoogle}
+          disabled={googleLoading}
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.055] px-4 py-3.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+        >
           <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-base font-bold text-blue-500">G</span>
-          Đăng nhập với Google
-        </button>
-        <button className="flex items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.055] px-4 py-3.5 text-sm font-medium text-white transition hover:bg-white/10">
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-[#1877f2] text-base font-bold text-white">f</span>
-          Đăng nhập với Facebook
+          {googleLoading ? "Đang chuyển đến Google..." : "Đăng nhập với Google"}
         </button>
       </div>
 

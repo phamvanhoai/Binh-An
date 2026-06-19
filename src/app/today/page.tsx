@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Bell,
   ChevronLeft,
   ChevronRight,
   Facebook,
@@ -15,12 +14,17 @@ import {
   Users
 } from "lucide-react";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { demoMessages } from "@/lib/demo-data";
+import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
+import { todayKey } from "@/lib/utils";
 
 type DailyMessage = {
+  id?: string;
   message: string;
   reflection_question?: string | null;
   category?: string | null;
+  opened_date?: string | null;
 };
 
 const favoriteMessages = [
@@ -36,13 +40,7 @@ const reflectionCards = [
   { icon: Star, title: "Mục tiêu nhỏ hôm nay của bạn là gì?", text: "Những bước nhỏ mỗi ngày sẽ dẫn bạn đến những điều lớn lao." }
 ];
 
-const recentMessages = [
-  { text: "Bạn không cần hoàn hảo để bắt đầu, nhưng hãy bắt đầu để trở nên tốt hơn.", date: "14/05/2024" },
-  { text: "Đừng nhất thiết phải điểm hoàn hảo, hãy tự tạo ra thời điểm hoàn hảo của riêng bạn.", date: "13/05/2024" },
-  { text: "Những điều tốt đẹp luôn đến với những người biết kiên nhẫn và không ngừng cố gắng.", date: "12/05/2024" },
-  { text: "Hạnh phúc không phải là đích đến, mà là hành trình tận hưởng mọi khoảnh khắc.", date: "11/05/2024" },
-  { text: "Bạn có sức mạnh để thay đổi cuộc sống của mình vào bất kỳ lúc nào.", date: "10/05/2024" }
-];
+type RecentMessage = { id: string; text: string; date: string };
 
 const activities = [
   { text: "Bạn đã xem thông điệp hôm nay", time: "07:30", icon: Leaf },
@@ -51,48 +49,137 @@ const activities = [
   { text: "Bạn nhận được 5 lượt đồng nguyện", time: "07:20", icon: Heart }
 ];
 
-async function getTodayMessage(): Promise<DailyMessage> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/daily-message/today`, {
-      cache: "no-store"
-    });
-    if (!response.ok) return demoMessages[0];
-    const json = await response.json();
-    return json.data || demoMessages[0];
-  } catch {
-    return demoMessages[0];
+function formatDate(value?: string | null) {
+  const date = value ? new Date(`${value}T00:00:00`) : new Date();
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+async function getTodayData(): Promise<{ message: DailyMessage; recentMessages: RecentMessage[]; source: "supabase" | "demo" }> {
+  const fallback = {
+    message: { ...demoMessages[0], opened_date: todayKey() },
+    recentMessages: demoMessages.map((item, index) => ({
+      id: item.id,
+      text: item.message,
+      date: formatDate(todayKey(new Date(Date.now() - index * 86400000)))
+    })),
+    source: "demo" as const
+  };
+
+  if (!hasSupabaseEnv()) return fallback;
+
+  const supabase = await createClient();
+  const openedDate = todayKey();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: existing } = await supabase
+      .from("user_daily_messages")
+      .select("opened_date, daily_messages(id, message, reflection_question, category)")
+      .eq("user_id", user.id)
+      .eq("opened_date", openedDate)
+      .maybeSingle();
+
+    const existingMessage = Array.isArray(existing?.daily_messages) ? existing?.daily_messages[0] : existing?.daily_messages;
+    if (existingMessage?.message) {
+      const { data: recent } = await supabase
+        .from("daily_messages")
+        .select("id, message, active_date, created_at")
+        .eq("is_active", true)
+        .order("active_date", { ascending: false, nullsFirst: false })
+        .limit(5);
+
+      return {
+        message: { ...existingMessage, opened_date: existing?.opened_date || openedDate },
+        recentMessages: (recent || []).map((item) => ({
+          id: item.id,
+          text: item.message,
+          date: formatDate(item.active_date || item.created_at?.slice(0, 10))
+        })),
+        source: "supabase"
+      };
+    }
   }
+
+  const { data: datedMessage } = await supabase
+    .from("daily_messages")
+    .select("id, message, reflection_question, category")
+    .eq("is_active", true)
+    .eq("active_date", openedDate)
+    .maybeSingle();
+
+  const { data: fallbackMessage } = datedMessage
+    ? { data: null }
+    : await supabase.from("daily_messages").select("id, message, reflection_question, category").eq("is_active", true).limit(1).maybeSingle();
+
+  const message = datedMessage || fallbackMessage;
+  if (!message) return fallback;
+
+  if (user) {
+    await supabase.from("user_daily_messages").insert({
+      user_id: user.id,
+      message_id: message.id,
+      opened_date: openedDate
+    });
+  }
+
+  const { data: recent } = await supabase
+    .from("daily_messages")
+    .select("id, message, active_date, created_at")
+    .eq("is_active", true)
+    .order("active_date", { ascending: false, nullsFirst: false })
+    .limit(5);
+
+  return {
+    message: { ...message, opened_date: openedDate },
+    recentMessages: (recent || []).map((item) => ({
+      id: item.id,
+      text: item.message,
+      date: formatDate(item.active_date || item.created_at?.slice(0, 10))
+    })),
+    source: "supabase"
+  };
 }
 
 export default async function TodayPage() {
-  const message = await getTodayMessage();
-  const heroMessage = "Bình yên không phải là nơi ta đến, mà là cách ta chọn để sống mỗi ngày.";
+  const { message, recentMessages, source } = await getTodayData();
+  const heroMessage = message.message;
   const heroReflection = message.reflection_question || "Hãy hít thở sâu, mỉm cười và biết ơn những điều đang có trong hiện tại.";
 
   return (
     <div className="ritual-dashboard min-h-screen bg-[#080d19] text-slate-100">
       <DashboardSidebar activeHref="/today" variant="today" />
 
-      <main className="min-h-screen px-4 py-6 xl:ml-72 2xl:px-8">
-        <header className="mx-auto flex max-w-[1600px] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <main className="dashboard-main">
+        <header className="dashboard-frame flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-white md:text-3xl">Thông điệp hôm nay</h1>
-            <p className="mt-2 text-sm text-slate-400">Mỗi ngày một thông điệp để nuôi dưỡng tâm hồn và lan tỏa năng lượng tích cực.</p>
+            <p className="mt-2 text-sm text-slate-400">
+              {source === "supabase" ? "Thông điệp đang được lấy từ dữ liệu Supabase." : "Chưa có dữ liệu Supabase, đang hiển thị thông điệp mẫu."}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <label className="hidden min-w-80 items-center gap-3 rounded-xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-slate-400 lg:flex">
               <Search size={18} aria-hidden="true" />
               <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="Tìm kiếm lời nguyện, người dùng..." />
             </label>
-            <button className="relative grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/6">
-              <Bell size={18} aria-hidden="true" />
-              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500" />
-            </button>
-            <div className="h-11 w-11 rounded-full border border-amber-200/30 bg-[radial-gradient(circle_at_40%_30%,#f8d7a1,#7c4a2f_58%,#1f2937)]" />
+            <NotificationBell />
+            <Link
+              href="/profile"
+              aria-label="Mở hồ sơ cá nhân"
+              className="h-11 w-11 rounded-full border border-amber-200/30 bg-[radial-gradient(circle_at_40%_30%,#f8d7a1,#7c4a2f_58%,#1f2937)]"
+            />
           </div>
         </header>
 
-        <div className="mx-auto mt-6 grid max-w-[1600px] gap-6 2xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <div className="dashboard-content-grid">
           <section className="grid gap-6">
             <section className="relative min-h-[34rem] overflow-hidden rounded-2xl border border-white/10 bg-[#0d1525] p-7 shadow-2xl shadow-black/25">
               <Image
@@ -108,7 +195,7 @@ export default async function TodayPage() {
 
               <div className="relative z-10 max-w-xl">
                 <h2 className="text-2xl font-semibold text-white">Thông điệp hôm nay</h2>
-                <p className="mt-3 text-sm text-slate-300">Thứ Tư, 15 tháng 5, 2024</p>
+                <p className="mt-3 text-sm text-slate-300">{formatDate(message.opened_date)}</p>
                 <p className="mt-10 text-5xl leading-none text-amber-300/70">“</p>
                 <blockquote className="mt-1 text-3xl font-medium leading-[1.45] text-amber-100 md:text-4xl">
                   {heroMessage}
@@ -158,7 +245,7 @@ export default async function TodayPage() {
                 </button>
                 <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                   {recentMessages.map((item) => (
-                    <article key={item.date} className="rounded-xl border border-white/10 bg-[#121a2a] p-4">
+                    <article key={item.id} className="rounded-xl border border-white/10 bg-[#121a2a] p-4">
                       <p className="text-2xl leading-none text-amber-300/80">“</p>
                       <p className="mt-1 min-h-28 text-sm leading-6 text-slate-200">{item.text}</p>
                       <p className="mt-4 text-xs text-slate-500">{item.date}</p>
@@ -208,7 +295,7 @@ export default async function TodayPage() {
                   </div>
                 ))}
               </div>
-              <Link href="/dashboard" className="mt-3 flex justify-center rounded-xl bg-white/6 px-4 py-3 text-sm text-slate-300 hover:text-white">
+              <Link href="/profile" className="mt-3 flex justify-center rounded-xl bg-white/6 px-4 py-3 text-sm text-slate-300 hover:text-white">
                 Xem tất cả
               </Link>
             </section>
