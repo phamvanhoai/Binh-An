@@ -18,6 +18,7 @@ import { NotificationBell } from "@/components/layout/NotificationBell";
 import { demoMessages } from "@/lib/demo-data";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { todayKey } from "@/lib/utils";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type DailyMessage = {
   id?: string;
@@ -27,11 +28,19 @@ type DailyMessage = {
   opened_date?: string | null;
 };
 
-const favoriteMessages = [
-  { text: "Cuộc sống là 10% những gì xảy ra với bạn và 90% cách bạn phản ứng với nó.", likes: "2.458", image: "/assets/rituals/candle.png" },
-  { text: "Điều duy nhất cản trở bạn là câu chuyện bạn tự kể với chính mình.", likes: "1.987", image: "/assets/rituals/lantern.png" },
-  { text: "Mỗi ngày là một cơ hội mới để trở thành phiên bản tốt hơn của chính mình.", likes: "1.756", image: "/assets/rituals/candle.png" }
-];
+type FavoriteMessage = { text: string; opens: number; image: string };
+
+type ActivityItem = {
+  text: string;
+  time: string;
+  type: "message_open" | "prayer_sent" | "reaction_given";
+};
+
+const activityIcons: Record<ActivityItem["type"], typeof Leaf> = {
+  message_open: Leaf,
+  prayer_sent: Flame,
+  reaction_given: Heart
+};
 
 const reflectionCards = [
   { icon: Heart, title: "Hôm nay điều gì khiến bạn biết ơn?", text: "Dành vài phút để nghĩ về những điều tốt đẹp xung quanh bạn." },
@@ -42,12 +51,7 @@ const reflectionCards = [
 
 type RecentMessage = { id: string; text: string; date: string };
 
-const activities = [
-  { text: "Bạn đã xem thông điệp hôm nay", time: "07:30", icon: Leaf },
-  { text: "Bạn đã thắp 1 nến", time: "07:28", icon: Flame },
-  { text: "Bạn đã gửi lời nguyện", time: "07:25", icon: Send },
-  { text: "Bạn nhận được 5 lượt đồng nguyện", time: "07:20", icon: Heart }
-];
+
 
 function formatDate(value?: string | null) {
   const date = value ? new Date(`${value}T00:00:00`) : new Date();
@@ -60,7 +64,153 @@ function formatDate(value?: string | null) {
   }).format(date);
 }
 
-async function getTodayData(): Promise<{ message: DailyMessage; recentMessages: RecentMessage[]; source: "supabase" | "demo" }> {
+const ritualImages = ["/assets/rituals/candle.png", "/assets/rituals/lantern.png", "/assets/rituals/candle.png"];
+
+async function fetchPopularMessages(): Promise<FavoriteMessage[]> {
+  try {
+    const admin = createAdminClient();
+    const { data: allMsgs } = await admin
+      .from("daily_messages")
+      .select("id, message")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (!allMsgs?.length) return [];
+
+    const msgIds = allMsgs.map((m) => m.id);
+    const { data: opens } = await admin
+      .from("user_daily_messages")
+      .select("message_id")
+      .in("message_id", msgIds);
+
+    const openCounts = new Map<string, number>();
+    (opens || []).forEach((o) => {
+      if (o.message_id) openCounts.set(o.message_id, (openCounts.get(o.message_id) || 0) + 1);
+    });
+
+    return allMsgs
+      .map((m) => ({ text: m.message, opens: openCounts.get(m.id) || 0, image: "" }))
+      .sort((a, b) => b.opens - a.opens)
+      .slice(0, 3)
+      .map((m, i) => ({ ...m, image: ritualImages[i % ritualImages.length] }));
+  } catch {
+    // Admin client unavailable – fall back to regular client without open counts
+    try {
+      if (!hasSupabaseEnv()) return [];
+      const supabase = await createClient();
+      const { data: msgs } = await supabase
+        .from("daily_messages")
+        .select("message")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      return (msgs || []).map((m, i) => ({
+        text: m.message,
+        opens: 0,
+        image: ritualImages[i % ritualImages.length]
+      }));
+    } catch {
+      return [];
+    }
+  }
+}
+
+function formatActivityTime(isoString: string | null): string {
+  if (!isoString) return "Vừa xong";
+  const diff = Date.now() - new Date(isoString).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Vừa xong";
+  if (minutes < 60) return `${minutes} phút trước`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  return `${Math.floor(hours / 24)} ngày trước`;
+}
+
+const prayerTypeLabels: Record<string, string> = {
+  peace: "cầu bình an",
+  wish: "mong ước",
+  gratitude: "biết ơn",
+  memorial: "tưởng nhớ",
+  worry: "gửi lo lắng"
+};
+
+const reactionTypeLabels: Record<string, string> = {
+  pray: "đồng nguyện",
+  peace: "gửi an lành",
+  candle: "thắp nến"
+};
+
+async function fetchUserActivities(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<ActivityItem[]> {
+  const [recentOpens, recentPrayers, recentReactions] = await Promise.all([
+    supabase
+      .from("user_daily_messages")
+      .select("opened_date, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("prayers")
+      .select("type, created_at")
+      .eq("user_id", userId)
+      .neq("status", "deleted")
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("prayer_reactions")
+      .select("reaction_type, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(3)
+  ]);
+
+  const all: Array<ActivityItem & { sortKey: string }> = [];
+
+  (recentOpens.data || []).forEach((item) => {
+    all.push({
+      type: "message_open",
+      text: `Bạn đã xem thông điệp ngày ${item.opened_date}`,
+      time: formatActivityTime(item.created_at),
+      sortKey: item.created_at || ""
+    });
+  });
+
+  (recentPrayers.data || []).forEach((item) => {
+    const label = prayerTypeLabels[item.type] || item.type;
+    all.push({
+      type: "prayer_sent",
+      text: `Bạn đã gửi lời ${label}`,
+      time: formatActivityTime(item.created_at),
+      sortKey: item.created_at || ""
+    });
+  });
+
+  (recentReactions.data || []).forEach((item) => {
+    const label = reactionTypeLabels[item.reaction_type] || item.reaction_type;
+    all.push({
+      type: "reaction_given",
+      text: `Bạn đã ${label} cho một lời bình an`,
+      time: formatActivityTime(item.created_at),
+      sortKey: item.created_at || ""
+    });
+  });
+
+  return all
+    .sort((a, b) => (b.sortKey > a.sortKey ? 1 : -1))
+    .slice(0, 5)
+    .map((item): ActivityItem => ({ type: item.type, text: item.text, time: item.time }));
+}
+
+async function getTodayData(): Promise<{
+  message: DailyMessage;
+  recentMessages: RecentMessage[];
+  favoriteMessages: FavoriteMessage[];
+  activities: ActivityItem[];
+  source: "supabase" | "demo";
+}> {
   const fallback = {
     message: { ...demoMessages[0], opened_date: todayKey() },
     recentMessages: demoMessages.map((item, index) => ({
@@ -68,6 +218,8 @@ async function getTodayData(): Promise<{ message: DailyMessage; recentMessages: 
       text: item.message,
       date: formatDate(todayKey(new Date(Date.now() - index * 86400000)))
     })),
+    favoriteMessages: [] as FavoriteMessage[],
+    activities: [] as ActivityItem[],
     source: "demo" as const
   };
 
@@ -96,6 +248,11 @@ async function getTodayData(): Promise<{ message: DailyMessage; recentMessages: 
         .order("active_date", { ascending: false, nullsFirst: false })
         .limit(5);
 
+      const [favoriteMessages, activities] = await Promise.all([
+        fetchPopularMessages(),
+        fetchUserActivities(supabase, user.id)
+      ]);
+
       return {
         message: { ...existingMessage, opened_date: existing?.opened_date || openedDate },
         recentMessages: (recent || []).map((item) => ({
@@ -103,6 +260,8 @@ async function getTodayData(): Promise<{ message: DailyMessage; recentMessages: 
           text: item.message,
           date: formatDate(item.active_date || item.created_at?.slice(0, 10))
         })),
+        favoriteMessages,
+        activities,
         source: "supabase"
       };
     }
@@ -137,6 +296,11 @@ async function getTodayData(): Promise<{ message: DailyMessage; recentMessages: 
     .order("active_date", { ascending: false, nullsFirst: false })
     .limit(5);
 
+  const [favoriteMessages, activities] = await Promise.all([
+    fetchPopularMessages(),
+    user ? fetchUserActivities(supabase, user.id) : Promise.resolve([] as ActivityItem[])
+  ]);
+
   return {
     message: { ...message, opened_date: openedDate },
     recentMessages: (recent || []).map((item) => ({
@@ -144,12 +308,14 @@ async function getTodayData(): Promise<{ message: DailyMessage; recentMessages: 
       text: item.message,
       date: formatDate(item.active_date || item.created_at?.slice(0, 10))
     })),
+    favoriteMessages,
+    activities,
     source: "supabase"
   };
 }
 
 export default async function TodayPage() {
-  const { message, recentMessages, source } = await getTodayData();
+  const { message, recentMessages, favoriteMessages, activities, source } = await getTodayData();
   const heroMessage = message.message;
   const heroReflection = message.reflection_question || "Hãy hít thở sâu, mỉm cười và biết ơn những điều đang có trong hiện tại.";
 
@@ -263,7 +429,7 @@ export default async function TodayPage() {
             <section className="rounded-2xl border border-white/10 bg-white/[0.055] p-5">
               <h2 className="font-semibold text-white">Thông điệp được yêu thích</h2>
               <div className="mt-5 grid gap-3">
-                {favoriteMessages.map((item) => (
+                {favoriteMessages.length ? favoriteMessages.map((item) => (
                   <article key={item.text} className="grid grid-cols-[5.6rem_minmax(0,1fr)] gap-4 rounded-xl border border-white/10 bg-[#121a2a] p-3">
                     <div className="relative h-20 overflow-hidden rounded-lg bg-[#0b1220]">
                       <Image src={item.image} width={180} height={180} alt="" aria-hidden="true" className="h-full w-full object-cover" />
@@ -273,11 +439,13 @@ export default async function TodayPage() {
                       <p className="text-sm leading-6 text-slate-100">{item.text}</p>
                       <p className="mt-2 flex items-center justify-end gap-1 text-xs text-slate-400">
                         <Heart size={13} className="fill-rose-400 text-rose-400" aria-hidden="true" />
-                        {item.likes}
+                        {new Intl.NumberFormat("vi-VN").format(item.opens)} lượt xem
                       </p>
                     </div>
                   </article>
-                ))}
+                )) : (
+                  <p className="rounded-xl border border-white/10 bg-[#121a2a] p-4 text-sm text-slate-400">Chưa có thông điệp nào.</p>
+                )}
               </div>
               <Link href="/today" className="mt-3 flex justify-center rounded-xl bg-white/6 px-4 py-3 text-sm text-slate-300 hover:text-white">
                 Xem tất cả
@@ -287,13 +455,18 @@ export default async function TodayPage() {
             <section className="rounded-2xl border border-white/10 bg-white/[0.055] p-5">
               <h2 className="font-semibold text-white">Hoạt động của bạn</h2>
               <div className="mt-4 divide-y divide-white/10 rounded-xl bg-[#121a2a] px-4">
-                {activities.map((item) => (
-                  <div key={item.text} className="flex items-center gap-3 py-3 text-sm">
-                    <item.icon className="text-amber-300" size={16} aria-hidden="true" />
-                    <span className="flex-1 text-slate-300">{item.text}</span>
-                    <span className="text-slate-500">{item.time}</span>
-                  </div>
-                ))}
+                {activities.length ? activities.map((item, index) => {
+                  const Icon = activityIcons[item.type];
+                  return (
+                    <div key={`${item.type}-${index}`} className="flex items-center gap-3 py-3 text-sm">
+                      <Icon className="text-amber-300" size={16} aria-hidden="true" />
+                      <span className="flex-1 text-slate-300">{item.text}</span>
+                      <span className="text-slate-500">{item.time}</span>
+                    </div>
+                  );
+                }) : (
+                  <p className="py-4 text-sm text-slate-400">Chưa có hoạt động nào.</p>
+                )}
               </div>
               <Link href="/profile" className="mt-3 flex justify-center rounded-xl bg-white/6 px-4 py-3 text-sm text-slate-300 hover:text-white">
                 Xem tất cả
