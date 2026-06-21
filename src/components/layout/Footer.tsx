@@ -6,6 +6,9 @@ export function Footer() {
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-slate-600 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
         <p>© 2026 Bình An. Mỗi ngày một phút bình an.</p>
         <div className="flex flex-wrap gap-4">
+          <Link href="/home" className="hover:text-night">
+            Giới thiệu ứng dụng
+          </Link>
           <Link href="/privacy-policy" className="hover:text-night">
             Chính sách bảo mật
           </Link>
