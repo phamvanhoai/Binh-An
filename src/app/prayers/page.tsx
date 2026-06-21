@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Flame, Heart, MessageCircle, Search, Send, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flame, HeartHandshake, Search, Send, Sparkles } from "lucide-react";
 import { DashboardSidebar, RitualMiniImage } from "@/components/layout/DashboardSidebar";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { demoPrayers } from "@/lib/demo-data";
@@ -22,7 +22,10 @@ type PublicPrayer = {
   image: string;
   pray: number;
   peace: number;
-  reacted: boolean;
+  candle: number;
+  reactedPray: boolean;
+  reactedPeace: boolean;
+  reactedCandle: boolean;
   canReact: boolean;
   canReport: boolean;
 };
@@ -113,7 +116,10 @@ function fallbackData(page = 1, pageSize = 8): CommunityData {
         image: visual.image,
         pray: item.pray,
         peace: item.peace,
-        reacted: false,
+        candle: item.candle || 0,
+        reactedPray: false,
+        reactedPeace: false,
+        reactedCandle: false,
         canReact: false,
         canReport: false
       };
@@ -209,7 +215,10 @@ async function getCommunityData(page: number): Promise<CommunityData> {
         image: visual.image,
         pray: counts.pray,
         peace: counts.peace,
-        reacted: Boolean(user && reactions?.some((reaction) => reaction.prayer_id === item.id && reaction.user_id === user.id && reaction.reaction_type === "pray")),
+        candle: counts.candle,
+        reactedPray: Boolean(user && reactions?.some((reaction) => reaction.prayer_id === item.id && reaction.user_id === user.id && reaction.reaction_type === "pray")),
+        reactedPeace: Boolean(user && reactions?.some((reaction) => reaction.prayer_id === item.id && reaction.user_id === user.id && reaction.reaction_type === "peace")),
+        reactedCandle: Boolean(user && reactions?.some((reaction) => reaction.prayer_id === item.id && reaction.user_id === user.id && reaction.reaction_type === "candle")),
         canReact: Boolean(item.allow_reactions && (!user || item.user_id !== user.id)),
         canReport: Boolean(!user || item.user_id !== user.id)
       };
@@ -323,35 +332,39 @@ export default async function PrayersPage({ searchParams }: { searchParams: Prom
                             <span>{prayer.time}</span>
                           </div>
                           <p className="mt-2 text-base leading-7 text-white">{prayer.text}</p>
-                          <div className="mt-3 flex flex-wrap items-center gap-5 text-sm text-slate-400">
-                            <span className="inline-flex items-center gap-1.5">
-                              <Heart size={15} aria-hidden="true" />
-                              {formatNumber(prayer.pray)} đồng nguyện
-                            </span>
-                            <span className="inline-flex items-center gap-1.5">
-                              <MessageCircle size={15} aria-hidden="true" />
-                              {formatNumber(prayer.peace)} gửi an lành
-                            </span>
+                          <div className="mt-4 flex flex-wrap items-center gap-3">
+                            {[
+                              { type: "pray", icon: HeartHandshake, label: "đồng nguyện", count: prayer.pray, active: prayer.reactedPray },
+                              { type: "peace", icon: Sparkles, label: "gửi an lành", count: prayer.peace, active: prayer.reactedPeace },
+                              { type: "candle", icon: Flame, label: "thắp nến", count: prayer.candle, active: prayer.reactedCandle }
+                            ].map((item) => {
+                              const Icon = item.icon;
+                              return (
+                                <form key={item.type} action={togglePrayerReaction}>
+                                  <input type="hidden" name="prayer_id" value={prayer.id} />
+                                  <input type="hidden" name="reaction_type" value={item.type} />
+                                  <input type="hidden" name="return_path" value={`/prayers?page=${data.pagination.page}`} />
+                                  <button
+                                    disabled={!prayer.canReact}
+                                    aria-pressed={item.active}
+                                    title={!prayer.canReact ? "Bạn không thể phản hồi lời bình an của chính mình" : undefined}
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                                      item.active
+                                        ? "border border-amber-300/35 bg-amber-300/25 text-amber-50 shadow-[0_0_15px_rgba(251,191,36,0.08)]"
+                                        : "border border-white/5 bg-[#172237]/80 text-slate-300 hover:border-white/10 hover:bg-white/5"
+                                    }`}
+                                  >
+                                    <Icon size={14} className={item.active ? "text-amber-300" : "text-slate-400"} aria-hidden="true" />
+                                    <span>
+                                      {formatNumber(item.count)} {item.label}
+                                    </span>
+                                  </button>
+                                </form>
+                              );
+                            })}
                           </div>
                         </div>
                         <div className="flex items-center gap-3 lg:justify-end">
-                          <form action={togglePrayerReaction}>
-                            <input type="hidden" name="prayer_id" value={prayer.id} />
-                            <input type="hidden" name="reaction_type" value="pray" />
-                            <input type="hidden" name="return_path" value={`/prayers?page=${data.pagination.page}`} />
-                            <button
-                              disabled={!prayer.canReact}
-                              aria-pressed={prayer.reacted}
-                              title={!prayer.canReact ? "Bạn không thể đồng nguyện với lời bình an của chính mình" : undefined}
-                              className={`rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
-                                prayer.reacted
-                                  ? "border border-amber-300/35 bg-amber-300/25 text-amber-50"
-                                  : "bg-amber-400/14 text-amber-200 hover:bg-amber-400/20"
-                              }`}
-                            >
-                              {prayer.reacted ? "Đã đồng nguyện" : "Đồng nguyện"}
-                            </button>
-                          </form>
                           <PrayerActionsMenu prayerId={prayer.id} canReport={prayer.canReport} />
                         </div>
                       </div>
@@ -429,7 +442,7 @@ export default async function PrayersPage({ searchParams }: { searchParams: Prom
               <div className="mt-5 grid gap-4">
                 {[
                   { label: "Lời bình an hôm nay", value: formatNumber(data.stats.todayPrayers), icon: Send },
-                  { label: "Lượt đồng nguyện", value: formatNumber(data.stats.totalReactions), icon: Heart },
+                  { label: "Lượt đồng nguyện", value: formatNumber(data.stats.totalReactions), icon: HeartHandshake },
                   { label: "Ngọn nến được thắp", value: formatNumber(data.stats.candlePrayers), icon: Flame }
                 ].map((stat) => (
                   <div key={stat.label} className="flex items-center gap-4 rounded-xl border border-white/10 bg-[#101827] p-4">

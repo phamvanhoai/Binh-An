@@ -20,17 +20,42 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   if (error) return apiError("PRAYER_READ_FAILED", error.message, 500);
   if (!data) return apiError("PRAYER_NOT_FOUND", "Prayer was not found.", 404);
 
+  let userId: string | null = null;
+  if (token) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      userId = user.id;
+    }
+  }
+
   const { data: reactions } = await supabase
     .from("prayer_reactions")
-    .select("reaction_type")
+    .select("user_id, reaction_type")
     .eq("prayer_id", id);
+
   const counts = { pray: 0, peace: 0, candle: 0 };
+  const userReactions = { pray: false, peace: false, candle: false };
   (reactions || []).forEach((reaction) => {
     const type = reaction.reaction_type as keyof typeof counts;
-    if (type in counts) counts[type] += 1;
+    if (type in counts) {
+      counts[type] += 1;
+      if (userId && reaction.user_id === userId) {
+        userReactions[type] = true;
+      }
+    }
   });
 
-  return apiResponse({ ...data, reactions: counts });
+  return apiResponse({
+    id: data.id,
+    content: data.content,
+    type: data.type,
+    visibility: data.visibility,
+    allow_reactions: data.allow_reactions,
+    created_at: data.created_at,
+    reactions: counts,
+    user_reactions: userReactions,
+    can_react: Boolean(data.allow_reactions && (!userId || data.user_id !== userId))
+  });
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {

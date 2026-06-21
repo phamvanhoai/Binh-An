@@ -1,4 +1,4 @@
-import { apiError, apiOptions, apiResponse, createAppClient, requireAppAuth } from "@/lib/api-v1";
+import { apiError, apiOptions, apiResponse, createAppClient, requireAppAuth, getBearerToken } from "@/lib/api-v1";
 import { getSiteSettings } from "@/lib/site-settings";
 import { prayerSchema } from "@/lib/validations/prayer";
 
@@ -22,10 +22,20 @@ export async function GET(request: Request) {
     return apiError("VALIDATION_ERROR", "Prayer type is invalid.", 422);
   }
 
-  const supabase = createAppClient();
+  const token = getBearerToken(request);
+  const supabase = createAppClient(token);
+
+  let userId: string | null = null;
+  if (token) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      userId = user.id;
+    }
+  }
+
   let query = supabase
     .from("prayers")
-    .select("id,content,type,allow_reactions,created_at", { count: "exact" })
+    .select("id,user_id,content,type,allow_reactions,created_at", { count: "exact" })
     .eq("visibility", "public_anonymous")
     .eq("status", "active")
     .order("created_at", { ascending: false })
@@ -37,7 +47,7 @@ export async function GET(request: Request) {
 
   const ids = (data || []).map((item) => item.id);
   const { data: reactions } = ids.length
-    ? await supabase.from("prayer_reactions").select("prayer_id,reaction_type").in("prayer_id", ids)
+    ? await supabase.from("prayer_reactions").select("prayer_id,user_id,reaction_type").in("prayer_id", ids)
     : { data: [] };
   const counts = new Map<string, Record<string, number>>();
   (reactions || []).forEach((reaction) => {
@@ -50,8 +60,18 @@ export async function GET(request: Request) {
   const total = count || 0;
   return apiResponse(
     (data || []).map((item) => ({
-      ...item,
-      reactions: counts.get(item.id) || { pray: 0, peace: 0, candle: 0 }
+      id: item.id,
+      content: item.content,
+      type: item.type,
+      allow_reactions: item.allow_reactions,
+      created_at: item.created_at,
+      reactions: counts.get(item.id) || { pray: 0, peace: 0, candle: 0 },
+      user_reactions: {
+        pray: Boolean(userId && (reactions || []).some((r) => r.prayer_id === item.id && r.user_id === userId && r.reaction_type === "pray")),
+        peace: Boolean(userId && (reactions || []).some((r) => r.prayer_id === item.id && r.user_id === userId && r.reaction_type === "peace")),
+        candle: Boolean(userId && (reactions || []).some((r) => r.prayer_id === item.id && r.user_id === userId && r.reaction_type === "candle"))
+      },
+      can_react: Boolean(item.allow_reactions && (!userId || item.user_id !== userId))
     })),
     {
       meta: {
