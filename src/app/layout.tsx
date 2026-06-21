@@ -22,7 +22,12 @@ export const metadata: Metadata = {
     description: "Mỗi ngày một phút bình an.",
     siteName: "Bình An",
     type: "website"
-  }
+  },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? {
+        google: process.env.GOOGLE_SITE_VERIFICATION
+      }
+    : undefined
 };
 
 export default function RootLayout({
