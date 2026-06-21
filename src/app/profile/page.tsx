@@ -9,7 +9,6 @@ import {
   Heart,
   Mail,
   Medal,
-  Search,
   ShieldCheck,
   Sparkles,
   UserRound
@@ -44,6 +43,9 @@ type ProfileData = {
   activities: Activity[];
 };
 
+const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
+const VIETNAM_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
+
 const ritualImages: Record<string, string> = {
   peace: "/assets/rituals/candle.png",
   gratitude: "/assets/rituals/candle.png",
@@ -52,34 +54,42 @@ const ritualImages: Record<string, string> = {
   worry: "/assets/rituals/lantern.png"
 };
 
-function dateKey(value: Date) {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+function vietnamDateKey(value = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: VIETNAM_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(value);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function startOfWeek() {
-  const date = new Date();
-  const day = date.getDay() || 7;
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() - day + 1);
-  return date.toISOString();
+  const [year, month, day] = vietnamDateKey().split("-").map(Number);
+  const calendarDate = new Date(Date.UTC(year, month - 1, day));
+  const weekday = calendarDate.getUTCDay() || 7;
+  const mondayInVietnam = Date.UTC(year, month - 1, day - weekday + 1) - VIETNAM_UTC_OFFSET_MS;
+
+  return new Date(mondayInVietnam).toISOString();
 }
 
 function calculateStreak(openedDates: string[]) {
   const dates = new Set(openedDates);
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
+  const [year, month, day] = vietnamDateKey().split("-").map(Number);
+  const cursor = new Date(Date.UTC(year, month - 1, day));
 
-  if (!dates.has(dateKey(cursor))) {
-    cursor.setDate(cursor.getDate() - 1);
+  const cursorKey = () => cursor.toISOString().slice(0, 10);
+
+  if (!dates.has(cursorKey())) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
   }
 
   let streak = 0;
-  while (dates.has(dateKey(cursor))) {
+  while (dates.has(cursorKey())) {
     streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
   }
 
   return streak;
@@ -89,10 +99,16 @@ function formatJoinedDate(value: string | null) {
   if (!value) return "Chưa cập nhật";
 
   return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: VIETNAM_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
     year: "numeric"
   }).format(new Date(value));
+}
+
+function formatDateOnly(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
 }
 
 function formatActivityTime(value: string) {
@@ -105,6 +121,7 @@ function formatActivityTime(value: string) {
   if (minutes < 10080) return `${Math.floor(minutes / 1440)} ngày trước`;
 
   return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: VIETNAM_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
     year: "numeric"
@@ -128,6 +145,7 @@ async function getProfileData(): Promise<ProfileData> {
     gratitudeResult,
     lettersResult,
     openedDaysResult,
+    memorialsResult,
     weeklyPrayersResult,
     weeklyGratitudeResult,
     weeklyReactionsResult
@@ -152,9 +170,15 @@ async function getProfileData(): Promise<ProfileData> {
       .limit(5),
     supabase
       .from("user_daily_messages")
-      .select("opened_date")
+      .select("id,opened_date,created_at")
       .eq("user_id", user.id)
       .order("opened_date", { ascending: false }),
+    supabase
+      .from("memorials")
+      .select("id,name,created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5),
     supabase
       .from("prayers")
       .select("id", { count: "exact", head: true })
@@ -173,17 +197,41 @@ async function getProfileData(): Promise<ProfileData> {
       .gte("created_at", weekStart)
   ]);
 
+  const firstQueryError = [
+    profileResult.error,
+    prayersResult.error,
+    gratitudeResult.error,
+    lettersResult.error,
+    openedDaysResult.error,
+    memorialsResult.error,
+    weeklyPrayersResult.error,
+    weeklyGratitudeResult.error,
+    weeklyReactionsResult.error
+  ].find((error): error is NonNullable<typeof error> => Boolean(error));
+
+  if (firstQueryError) {
+    throw new Error(`Không thể tải đầy đủ dữ liệu hồ sơ: ${firstQueryError.message}`);
+  }
+
   const prayers = prayersResult.data || [];
   const gratitudeEntries = gratitudeResult.data || [];
   const letters = lettersResult.data || [];
+  const openedDays = openedDaysResult.data || [];
+  const memorials = memorialsResult.data || [];
   const prayerIds = prayers.map((prayer) => prayer.id);
 
   const receivedReactions = prayerIds.length
     ? await supabase.from("prayer_reactions").select("user_id").in("prayer_id", prayerIds)
     : { data: [] as Array<{ user_id: string | null }> };
 
+  if ("error" in receivedReactions && receivedReactions.error) {
+    throw new Error(`Không thể tải dữ liệu đồng nguyện: ${receivedReactions.error.message}`);
+  }
+
   const companionIds = new Set(
-    (receivedReactions.data || []).map((reaction) => reaction.user_id).filter((id): id is string => Boolean(id))
+    (receivedReactions.data || [])
+      .map((reaction) => reaction.user_id)
+      .filter((id): id is string => Boolean(id) && id !== user.id)
   );
 
   const activities: Activity[] = [
@@ -207,6 +255,20 @@ async function getProfileData(): Promise<ProfileData> {
       createdAt: letter.created_at || new Date().toISOString(),
       image: "/assets/rituals/lantern.png",
       href: `/letters/${letter.id}`
+    })),
+    ...memorials.map((memorial) => ({
+      id: `memorial-${memorial.id}`,
+      title: `Bạn đã tạo góc tưởng nhớ cho “${memorial.name}”`,
+      createdAt: memorial.created_at || new Date().toISOString(),
+      image: "/assets/rituals/incense.png",
+      href: `/memorials/${memorial.id}`
+    })),
+    ...openedDays.slice(0, 5).map((openedDay) => ({
+      id: `message-${openedDay.id}`,
+      title: `Bạn đã mở thông điệp ngày ${formatDateOnly(openedDay.opened_date)}`,
+      createdAt: openedDay.created_at || `${openedDay.opened_date}T00:00:00+07:00`,
+      image: "/assets/rituals/today-message-bg.png",
+      href: `/messages/${openedDay.opened_date}`
     }))
   ]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -221,12 +283,12 @@ async function getProfileData(): Promise<ProfileData> {
   return {
     email: user.email || "Chưa có email",
     displayName: profile?.display_name || user.user_metadata?.name || user.email?.split("@")[0] || "Người dùng Bình An",
-    bio: profile?.bio || "Đang nuôi dưỡng một hành trình bình an mỗi ngày.",
+    bio: profile?.bio?.trim() || "",
     avatarUrl: profile?.avatar_url || user.user_metadata?.avatar_url || null,
-    joinedAt: profile?.created_at || user.created_at || null,
+    joinedAt: user.created_at || profile?.created_at || null,
     isAdmin: adminResult.rows[0]?.exists === true,
     stats: {
-      streak: calculateStreak((openedDaysResult.data || []).map((row) => row.opened_date)),
+      streak: calculateStreak(openedDays.map((row) => row.opened_date)),
       prayers: prayers.length,
       gratitude: gratitudeEntries.length,
       companions: companionIds.size
@@ -266,10 +328,6 @@ export default async function ProfilePage() {
             <p className="mt-2 text-sm text-slate-400">Thông tin và hành trình Bình An được cập nhật từ tài khoản của bạn.</p>
           </div>
           <div className="flex items-center gap-3">
-            <label className="hidden min-w-80 items-center gap-3 rounded-xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-slate-400 lg:flex">
-              <Search size={18} aria-hidden="true" />
-              <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="Tìm kiếm hoạt động..." />
-            </label>
             <NotificationBell />
           </div>
         </header>
@@ -290,7 +348,9 @@ export default async function ProfilePage() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium uppercase tracking-[0.24em] text-amber-200/80">Tài khoản Bình An</p>
                   <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">{profile.displayName}</h2>
-                  <p className="mt-3 max-w-2xl text-base leading-7 text-slate-200">{profile.bio}</p>
+                  <p className={`mt-3 max-w-2xl text-base leading-7 ${profile.bio ? "text-slate-200" : "italic text-slate-400"}`}>
+                    {profile.bio || "Chưa cập nhật giới thiệu."}
+                  </p>
                   <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-300">
                     <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2">
                       <Mail size={16} className="shrink-0" aria-hidden="true" />

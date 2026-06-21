@@ -130,6 +130,10 @@ create table if not exists reports (
   updated_at timestamptz default now()
 );
 
+create unique index if not exists reports_one_pending_per_user_target
+  on reports (reporter_id, target_type, target_id)
+  where status = 'pending';
+
 alter table profiles enable row level security;
 alter table admin_users enable row level security;
 alter table site_settings enable row level security;
@@ -227,6 +231,7 @@ create policy "candles are readable for visible memorials" on memorial_candles f
 create policy "users can light candles" on memorial_candles for insert with check (auth.uid() = user_id or user_id is null);
 
 create policy "users manage own gratitude" on gratitude_entries for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "users read own reports" on reports for select using (auth.uid() = reporter_id);
 create policy "users create reports" on reports for insert with check (auth.uid() = reporter_id);
 
 insert into daily_messages (message, reflection_question, category, active_date)

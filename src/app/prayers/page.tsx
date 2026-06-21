@@ -1,13 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
-import { ChevronRight, Flame, Heart, MessageCircle, MoreHorizontal, Search, Send, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flame, Heart, MessageCircle, Search, Send, Sparkles } from "lucide-react";
 import { DashboardSidebar, RitualMiniImage } from "@/components/layout/DashboardSidebar";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { demoPrayers } from "@/lib/demo-data";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { todayKey } from "@/lib/utils";
 import { getSiteSettings } from "@/lib/site-settings";
+import { togglePrayerReaction } from "@/lib/actions/prayer-reactions";
+import { PrayerActionsMenu } from "@/components/prayers/PrayerActionsMenu";
 
 type PrayerType = "wish" | "gratitude" | "memorial" | "worry" | "peace";
 type RitualMode = "candle" | "incense" | "lantern";
@@ -21,6 +22,9 @@ type PublicPrayer = {
   image: string;
   pray: number;
   peace: number;
+  reacted: boolean;
+  canReact: boolean;
+  canReport: boolean;
 };
 
 type CommunityData = {
@@ -39,8 +43,6 @@ type CommunityData = {
   source: "supabase" | "demo";
   enabled: boolean;
 };
-
-const filters = ["Tất cả", "Cầu bình an", "Biết ơn", "Tưởng nhớ"];
 
 const typeToMode: Record<PrayerType, RitualMode> = {
   peace: "candle",
@@ -73,6 +75,23 @@ function formatRelativeTime(value: string | null) {
   return `${Math.floor(hours / 24)} ngày trước`;
 }
 
+function getPaginationItems(currentPage: number, totalPages: number): Array<number | "ellipsis-start" | "ellipsis-end"> {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages: Array<number | "ellipsis-start" | "ellipsis-end"> = [1];
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+
+  if (start > 2) pages.push("ellipsis-start");
+  for (let page = start; page <= end; page += 1) pages.push(page);
+  if (end < totalPages - 1) pages.push("ellipsis-end");
+
+  pages.push(totalPages);
+  return pages;
+}
+
 function fallbackData(page = 1, pageSize = 8): CommunityData {
   const total = demoPrayers.length;
   const from = (page - 1) * pageSize;
@@ -93,7 +112,10 @@ function fallbackData(page = 1, pageSize = 8): CommunityData {
         ritual: visual.ritual,
         image: visual.image,
         pray: item.pray,
-        peace: item.peace
+        peace: item.peace,
+        reacted: false,
+        canReact: false,
+        canReport: false
       };
     }),
     stats: {
@@ -125,6 +147,9 @@ async function getCommunityData(page: number): Promise<CommunityData> {
   if (!hasSupabaseEnv()) return fallbackData(page, pageSize);
 
   const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
   const todayStart = `${todayKey()}T00:00:00.000Z`;
   const tomorrow = new Date(todayStart);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
@@ -133,7 +158,7 @@ async function getCommunityData(page: number): Promise<CommunityData> {
 
   const { data: prayers, count: totalPrayers } = await supabase
     .from("prayers")
-    .select("id, content, type, created_at", { count: "exact" })
+    .select("id, user_id, content, type, allow_reactions, created_at", { count: "exact" })
     .eq("visibility", "public_anonymous")
     .eq("status", "active")
     .order("created_at", { ascending: false })
@@ -142,7 +167,7 @@ async function getCommunityData(page: number): Promise<CommunityData> {
   const rows = prayers || [];
   const ids = rows.map((item) => item.id);
   const { data: reactions } = ids.length
-    ? await supabase.from("prayer_reactions").select("prayer_id, reaction_type").in("prayer_id", ids)
+    ? await supabase.from("prayer_reactions").select("prayer_id, user_id, reaction_type").in("prayer_id", ids)
     : { data: [] };
 
   const reactionCounts = new Map<string, { pray: number; peace: number; candle: number }>();
@@ -182,8 +207,11 @@ async function getCommunityData(page: number): Promise<CommunityData> {
         text: item.content,
         ritual: visual.ritual,
         image: visual.image,
-        pray: counts.pray + counts.candle,
-        peace: counts.peace
+        pray: counts.pray,
+        peace: counts.peace,
+        reacted: Boolean(user && reactions?.some((reaction) => reaction.prayer_id === item.id && reaction.user_id === user.id && reaction.reaction_type === "pray")),
+        canReact: Boolean(item.allow_reactions && (!user || item.user_id !== user.id)),
+        canReport: Boolean(!user || item.user_id !== user.id)
       };
     }),
     stats: {
@@ -200,39 +228,13 @@ async function getCommunityData(page: number): Promise<CommunityData> {
   };
 }
 
-async function prayForPrayer(formData: FormData) {
-  "use server";
-
-  if (!hasSupabaseEnv()) return;
-
-  const prayerId = String(formData.get("prayer_id") || "");
-  if (!prayerId) return;
-
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) return;
-
-  await supabase.from("prayer_reactions").upsert(
-    {
-      prayer_id: prayerId,
-      user_id: user.id,
-      reaction_type: "pray"
-    },
-    { onConflict: "prayer_id,user_id,reaction_type" }
-  );
-
-  revalidatePath("/prayers");
-}
-
 export default async function PrayersPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const params = await searchParams;
   const currentPage = Math.max(1, Number(params.page || 1) || 1);
   const data = await getCommunityData(currentPage);
   const previousPage = Math.max(1, data.pagination.page - 1);
   const nextPage = Math.min(data.pagination.totalPages, data.pagination.page + 1);
+  const paginationItems = getPaginationItems(data.pagination.page, data.pagination.totalPages);
 
   return (
     <div className="ritual-dashboard min-h-screen overflow-x-hidden bg-[#080d19] text-slate-100">
@@ -302,23 +304,9 @@ export default async function PrayersPage({ searchParams }: { searchParams: Prom
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.055] p-5 shadow-2xl shadow-black/20">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h2 className="font-semibold text-white">Lời bình an công khai</h2>
-                  <p className="mt-1 text-sm text-slate-400">Chỉ có đồng nguyện và gửi an lành, không có bình luận tự do.</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {filters.map((filter, index) => (
-                    <button
-                      key={filter}
-                      className={`rounded-full border px-4 py-2 text-sm transition ${
-                        index === 0 ? "border-amber-300/40 bg-amber-300/10 text-amber-200" : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {filter}
-                    </button>
-                  ))}
-                </div>
+              <div>
+                <h2 className="font-semibold text-white">Lời bình an công khai</h2>
+                <p className="mt-1 text-sm text-slate-400">Chỉ có đồng nguyện và gửi an lành, không có bình luận tự do.</p>
               </div>
 
               <div className="mt-5 grid gap-3">
@@ -347,15 +335,24 @@ export default async function PrayersPage({ searchParams }: { searchParams: Prom
                           </div>
                         </div>
                         <div className="flex items-center gap-3 lg:justify-end">
-                          <form action={prayForPrayer}>
+                          <form action={togglePrayerReaction}>
                             <input type="hidden" name="prayer_id" value={prayer.id} />
-                            <button className="rounded-lg bg-amber-400/14 px-4 py-2 text-sm font-semibold text-amber-200 hover:bg-amber-400/20">
-                              Đồng nguyện
+                            <input type="hidden" name="reaction_type" value="pray" />
+                            <input type="hidden" name="return_path" value={`/prayers?page=${data.pagination.page}`} />
+                            <button
+                              disabled={!prayer.canReact}
+                              aria-pressed={prayer.reacted}
+                              title={!prayer.canReact ? "Bạn không thể đồng nguyện với lời bình an của chính mình" : undefined}
+                              className={`rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                                prayer.reacted
+                                  ? "border border-amber-300/35 bg-amber-300/25 text-amber-50"
+                                  : "bg-amber-400/14 text-amber-200 hover:bg-amber-400/20"
+                              }`}
+                            >
+                              {prayer.reacted ? "Đã đồng nguyện" : "Đồng nguyện"}
                             </button>
                           </form>
-                          <button className="grid h-9 w-9 place-items-center rounded-full bg-white/6 text-slate-400">
-                            <MoreHorizontal size={17} aria-hidden="true" />
-                          </button>
+                          <PrayerActionsMenu prayerId={prayer.id} canReport={prayer.canReport} />
                         </div>
                       </div>
                     </article>
@@ -371,30 +368,57 @@ export default async function PrayersPage({ searchParams }: { searchParams: Prom
                 <p className="text-sm text-slate-400">
                   Trang {data.pagination.page} / {data.pagination.totalPages} • {formatNumber(data.pagination.total)} lời bình an
                 </p>
-                <div className="flex gap-2">
+                <nav aria-label="Phân trang lời bình an" className="flex flex-wrap items-center gap-2">
                   <Link
                     href={`/prayers?page=${previousPage}`}
+                    aria-label="Đến trang trước"
                     aria-disabled={data.pagination.page <= 1}
-                    className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+                    className={`inline-flex h-10 items-center justify-center gap-1 rounded-lg border px-3 text-sm font-semibold transition ${
                       data.pagination.page <= 1
                         ? "pointer-events-none border-white/5 bg-white/[0.03] text-slate-600"
                         : "border-white/10 bg-white/6 text-slate-300 hover:text-white"
                     }`}
                   >
+                    <ChevronLeft size={16} aria-hidden="true" />
                     Trước
                   </Link>
+
+                  {paginationItems.map((item) =>
+                    typeof item === "number" ? (
+                      <Link
+                        key={item}
+                        href={`/prayers?page=${item}`}
+                        aria-label={`Đến trang ${item}`}
+                        aria-current={item === data.pagination.page ? "page" : undefined}
+                        className={`grid h-10 min-w-10 place-items-center rounded-lg border px-2 text-sm font-semibold transition ${
+                          item === data.pagination.page
+                            ? "border-amber-300/50 bg-amber-300/20 text-amber-100 shadow-[0_0_20px_rgba(251,191,36,0.12)]"
+                            : "border-white/10 bg-white/6 text-slate-300 hover:border-white/20 hover:text-white"
+                        }`}
+                      >
+                        {item}
+                      </Link>
+                    ) : (
+                      <span key={item} aria-hidden="true" className="grid h-10 min-w-6 place-items-center text-sm text-slate-500">
+                        …
+                      </span>
+                    )
+                  )}
+
                   <Link
                     href={`/prayers?page=${nextPage}`}
+                    aria-label="Đến trang sau"
                     aria-disabled={data.pagination.page >= data.pagination.totalPages}
-                    className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+                    className={`inline-flex h-10 items-center justify-center gap-1 rounded-lg border px-3 text-sm font-semibold transition ${
                       data.pagination.page >= data.pagination.totalPages
                         ? "pointer-events-none border-white/5 bg-white/[0.03] text-slate-600"
                         : "border-white/10 bg-white/6 text-slate-300 hover:text-white"
                     }`}
                   >
                     Sau
+                    <ChevronRight size={16} aria-hidden="true" />
                   </Link>
-                </div>
+                </nav>
               </div>
             </section>
           </section>
